@@ -6,7 +6,7 @@ class RegistroForm(forms.ModelForm):
     password = forms.CharField(
     label='Contraseña',
     widget=forms.PasswordInput(attrs={
-        'class': 'form-control',
+        'class': 'form-input',
         'placeholder': 'Mínimo 6 caracteres'
     }),
     min_length=6,
@@ -15,7 +15,7 @@ class RegistroForm(forms.ModelForm):
     confirmar_password = forms.CharField(
     label='Confirmar contraseña',
     widget=forms.PasswordInput(attrs={
-        'class': 'form-control',
+        'class': 'form-input',
         'placeholder': 'Repite tu contraseña'
     }),
     required=True
@@ -25,15 +25,15 @@ class RegistroForm(forms.ModelForm):
         fields = ['nombre', 'telefono', 'rol']
         widgets = {
             'nombre': forms.TextInput(attrs={
-                'class': 'form-control',
+                'class': 'form-input',
                 'placeholder': 'Tu nombre completo'
             }),
             'telefono': forms.TextInput(attrs={
-                'class': 'form-control',
+                'class': 'form-input',
                 'placeholder': '+573001234567'
             }),
             'rol': forms.Select(attrs={
-                'class': 'form-control'
+                'class': 'form-input'
             }),
         }
     def clean(self):
