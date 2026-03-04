@@ -1,0 +1,56 @@
+{% extends 'base/base.html' %}
+{% block title %}Mi Perfil - Don Vital{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">⚙️ Mi Perfil</h1>
+</div>
+<div style="max-width:600px;">
+  <div class="card">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Nombre completo</label>
+        {{ form.nombre }}
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        {{ form.email }}
+      </div>
+      <div class="form-group">
+        <label class="form-label">Foto de perfil</label>
+        {% if request.user.foto %}
+          <div class="mb-1"><img src="{{ request.user.foto.url }}" alt="Foto actual" style="width:64px;height:64px;border-radius:50%;object-fit:cover;"></div>
+        {% endif %}
+        {{ form.foto }}
+      </div>
+      <div class="card" style="background:var(--color-bg);margin-bottom:1rem;">
+        <h3 style="font-weight:700;margin-bottom:1rem;">♿ Accesibilidad</h3>
+        <div class="flex items-center justify-between mb-2">
+          <label>Fuente grande (para adultos mayores)</label>
+          {{ form.fuente_grande }}
+        </div>
+        <div class="flex items-center justify-between">
+          <label>Alto contraste</label>
+          {{ form.alto_contraste }}
+        </div>
+      </div>
+      <div class="card" style="background:var(--color-bg);margin-bottom:1rem;">
+        <h3 style="font-weight:700;margin-bottom:1rem;">🔔 Notificaciones</h3>
+        <div class="flex items-center justify-between mb-2">
+          <label>Notificaciones push</label>
+          {{ form.notif_push }}
+        </div>
+        <div class="flex items-center justify-between mb-2">
+          <label>Notificaciones SMS</label>
+          {{ form.notif_sms }}
+        </div>
+        <div class="flex items-center justify-between">
+          <label>Notificaciones WhatsApp</label>
+          {{ form.notif_whatsapp }}
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">💾 Guardar cambios</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

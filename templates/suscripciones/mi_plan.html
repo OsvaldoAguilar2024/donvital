@@ -1,0 +1,29 @@
+{% extends 'base/base.html' %}
+{% block title %}Mi Plan - Don Vital{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1 class="page-title">💳 Mi Plan</h1><p class="page-subtitle">Gestiona tu suscripción</p></div>
+</div>
+{% if suscripcion %}
+<div class="card mb-3" style="border-left:4px solid var(--color-secondary);">
+  <div class="flex items-center justify-between">
+    <div>
+      <div class="text-muted text-sm mb-1">Plan activo</div>
+      <div style="font-size:1.5rem;font-weight:800;">{{ suscripcion.plan.nombre }}</div>
+      <div class="text-muted">${{ suscripcion.plan.precio_cop }} COP/mes</div>
+    </div>
+    <span class="badge badge-confirmada">{{ suscripcion.get_estado_display }}</span>
+  </div>
+</div>
+{% endif %}
+<div class="grid-2">
+  {% for plan in planes %}
+  <div class="card">
+    <h3 style="font-size:1.25rem;font-weight:700;margin-bottom:0.5rem;">{{ plan.nombre }}</h3>
+    <div style="font-size:2rem;font-weight:800;color:var(--color-primary);">${{ plan.precio_cop|floatformat:0 }} <span style="font-size:1rem;color:var(--color-text-muted);">COP/mes</span></div>
+    <p class="text-muted text-sm mt-1 mb-2">Hasta {{ plan.max_pacientes }} pacientes · {{ plan.max_cuidadores }} cuidadores</p>
+    <a href="#" class="btn btn-primary btn-block">Contratar</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

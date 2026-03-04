@@ -1,0 +1,60 @@
+{% extends 'base/base.html' %}
+{% block title %}Tomas del día - Don Vital{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="/medicamentos/" class="btn btn-ghost btn-sm mb-1">← Medicamentos</a>
+    <h1 class="page-title">⏰ Tomas del día</h1>
+    <p class="page-subtitle">{{ hoy|date:"l, d \d\e F \d\e Y" }}</p>
+  </div>
+</div>
+
+<!-- Resumen -->
+<div class="stats-grid mb-3">
+  <div class="stat-card"><div class="stat-icon orange">⏳</div><div class="stat-info"><div class="stat-number">{{ pendientes }}</div><div class="stat-label">Pendientes</div></div></div>
+  <div class="stat-card"><div class="stat-icon green">✅</div><div class="stat-info"><div class="stat-number">{{ tomadas }}</div><div class="stat-label">Tomadas</div></div></div>
+  <div class="stat-card"><div class="stat-icon red">❌</div><div class="stat-info"><div class="stat-number">{{ omitidas }}</div><div class="stat-label">Omitidas</div></div></div>
+</div>
+
+{% if tomas %}
+  {% for toma in tomas %}
+  <div style="display:flex;align-items:center;gap:1rem;padding:1rem;border-radius:var(--radius-md);border:1px solid var(--color-border);background:{% if toma.estado == 'tomado' %}rgba(39,174,96,0.05){% elif toma.estado == 'omitido' %}rgba(231,76,60,0.05){% elif toma.estado == 'retrasado' %}rgba(243,156,18,0.06){% else %}white{% endif %};margin-bottom:0.75rem;box-shadow:var(--shadow-sm);">
+    <!-- Hora -->
+    <div style="text-align:center;min-width:52px;">
+      <div style="font-size:1.3rem;font-weight:800;color:var(--color-primary);">{{ toma.hora_programada|time:"H:i" }}</div>
+    </div>
+    <!-- Info -->
+    <div style="flex:1;">
+      <div style="font-weight:700;font-size:var(--font-size-md);">💊 {{ toma.medicamento.nombre }}</div>
+      <div class="text-muted text-sm">{{ toma.medicamento.dosis }} · 👴 {{ toma.medicamento.paciente.nombre }}</div>
+      {% if toma.medicamento.instrucciones %}<div class="text-sm" style="color:var(--color-accent);">ℹ️ {{ toma.medicamento.instrucciones|truncatechars:60 }}</div>{% endif %}
+      {% if toma.confirmado_por %}<div class="text-sm text-muted">Confirmado por {{ toma.confirmado_por.nombre }} a las {{ toma.hora_real_toma|time:"H:i" }}</div>{% endif %}
+      {% if toma.notas_toma %}<div class="text-sm" style="color:var(--color-accent);">📝 {{ toma.notas_toma }}</div>{% endif %}
+    </div>
+    <!-- Estado + acciones -->
+    <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end;">
+      <span class="badge {% if toma.estado == 'tomado' %}badge-confirmada{% elif toma.estado == 'omitido' %}badge-cancelada{% elif toma.estado == 'retrasado' %}badge-programada{% else %}badge-programada{% endif %}">
+        {{ toma.get_estado_display }}
+      </span>
+      {% if toma.estado in 'pendiente,retrasado' %}
+      <form method="post" action="/medicamentos/toma/{{ toma.id }}/confirmar/">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary btn-sm">✅ Confirmó la toma</button>
+      </form>
+      <form method="post" action="/medicamentos/toma/{{ toma.id }}/omitir/">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">❌ No tomó</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="empty-state card">
+  <div class="empty-state-icon">💊</div>
+  <h3 class="empty-state-title">Sin tomas programadas hoy</h3>
+  <p class="empty-state-text">Los medicamentos activos generan tomas automáticamente cada día.</p>
+  <a href="/medicamentos/" class="btn btn-primary">Ver medicamentos</a>
+</div>
+{% endif %}
+{% endblock %}

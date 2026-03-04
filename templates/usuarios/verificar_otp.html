@@ -1,0 +1,29 @@
+{% extends 'base/base.html' %}
+{% block title %}Verificar código - Don Vital{% endblock %}
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card animate-in">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🔐</div>
+      <h1 class="auth-title">Código de verificación</h1>
+      <p class="auth-subtitle">Enviamos un código de 6 dígitos al <strong>{{ telefono }}</strong></p>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label" for="id_codigo">Código SMS</label>
+        {{ form.codigo }}
+        {% if form.codigo.errors %}
+          <p class="form-error">❌ {{ form.codigo.errors.0 }}</p>
+        {% endif %}
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">
+        Verificar y entrar →
+      </button>
+    </form>
+    <p class="text-center mt-2" style="font-size:0.875rem;">
+      <a href="/usuarios/login/" style="color:var(--color-primary);">← Cambiar número</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends 'base/base.html' %}
+{% block title %}Mis Citas - Don Vital{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">📅 Mis Citas</h1>
+    <p class="page-subtitle">Gestiona todas las citas médicas</p>
+  </div>
+  <a href="/citas/nueva/" class="btn btn-primary">➕ Nueva Cita</a>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-2" style="padding:1rem;">
+  <div class="flex gap-1" style="flex-wrap:wrap;">
+    <a href="/citas/" class="btn btn-sm {% if not estado_filtro %}btn-primary{% else %}btn-ghost{% endif %}">Todas</a>
+    {% for value, label in estados %}
+    <a href="/citas/?estado={{ value }}" class="btn btn-sm {% if estado_filtro == value %}btn-primary{% else %}btn-ghost{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if citas %}
+  {% for cita in citas %}
+  <a href="/citas/{{ cita.id }}/" class="cita-card animate-in">
+    <div class="cita-fecha" style="background:{% if cita.estado == 'confirmada' %}var(--color-secondary){% elif cita.estado == 'cancelada' or cita.estado == 'perdida' %}var(--color-text-muted){% else %}var(--color-primary){% endif %};">
+      <span class="dia">{{ cita.fecha|date:"d" }}</span>
+      <span class="mes">{{ cita.fecha|date:"M y" }}</span>
+    </div>
+    <div class="cita-info">
+      <div class="cita-especialidad">{{ cita.especialidad }}</div>
+      <div class="cita-paciente">👴 {{ cita.paciente.nombre }}</div>
+      <div class="cita-hora-lugar">🕐 {{ cita.hora|time:"H:i" }} · 📍 {{ cita.lugar|truncatechars:40 }}</div>
+      {% if cita.medico %}<div class="cita-hora-lugar">👨‍⚕️ {{ cita.medico }}</div>{% endif %}
+    </div>
+    <div class="cita-actions">
+      <span class="badge badge-{{ cita.estado }}">{{ cita.get_estado_display }}</span>
+      {% if cita.estado == 'programada' %}
+      <form method="post" action="/citas/{{ cita.id }}/confirmar/" onclick="event.stopPropagation()">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary btn-sm">✅ Confirmar</button>
+      </form>
+      {% endif %}
+    </div>
+  </a>
+  {% endfor %}
+{% else %}
+  <div class="empty-state card">
+    <div class="empty-state-icon">📅</div>
+    <h3 class="empty-state-title">Sin citas registradas</h3>
+    <p class="empty-state-text">Registra la primera cita médica de tu familiar</p>
+    <a href="/citas/nueva/" class="btn btn-primary">Registrar primera cita</a>
+  </div>
+{% endif %}
+{% endblock %}

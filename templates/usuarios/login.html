@@ -1,0 +1,30 @@
+{% extends 'base/base.html' %}
+{% block title %}Iniciar sesión - Don Vital{% endblock %}
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card animate-in">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">💊</div>
+      <h1 class="auth-title">Don Vital</h1>
+      <p class="auth-subtitle">Ingresa tu número de teléfono para continuar</p>
+    </div>
+    <form method="post" action="">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label" for="id_telefono">📱 Teléfono</label>
+        {{ form.telefono }}
+        {% if form.telefono.errors %}
+          <p class="form-error">❌ {{ form.telefono.errors.0 }}</p>
+        {% endif %}
+        <p class="form-help">Ejemplo: +57 300 000 0000</p>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">
+        Recibir código →
+      </button>
+    </form>
+    <p class="text-center mt-2" style="font-size:0.875rem;color:var(--color-text-muted);">
+      ¿Primera vez? <a href="/usuarios/registro/" style="color:var(--color-primary);font-weight:600;">Regístrate aquí</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

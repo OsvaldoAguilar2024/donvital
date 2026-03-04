@@ -1,0 +1,90 @@
+{% extends 'base/base.html' %}
+{% block title %}Medicamentos - Don Vital{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">💊 Medicamentos</h1>
+    <p class="page-subtitle">{{ total }} medicamento{{ total|pluralize }} registrado{{ total|pluralize }}</p>
+  </div>
+  <a href="/medicamentos/nuevo/" class="btn btn-primary">➕ Nuevo Medicamento</a>
+</div>
+
+<!-- Alertas activas -->
+{% if alertas.stock_bajo or alertas.receta_vencida or alertas.medicamento_vencido or alertas.receta_vence_pronto %}
+<div class="card mb-3" style="border-left:4px solid var(--color-danger);background:rgba(231,76,60,0.04);">
+  <div style="font-weight:700;margin-bottom:0.75rem;color:var(--color-danger);">⚠️ Alertas que requieren atención</div>
+  {% for med in alertas.medicamento_vencido %}
+  <div class="alert alert-error" style="margin-bottom:0.5rem;">❌ <strong>{{ med.nombre }}</strong> ({{ med.paciente.nombre }}) está VENCIDO. No administrar.</div>
+  {% endfor %}
+  {% for med in alertas.receta_vencida %}
+  <div class="alert alert-error" style="margin-bottom:0.5rem;">📋 Receta vencida: <strong>{{ med.nombre }}</strong> ({{ med.paciente.nombre }}). Renovar urgente.</div>
+  {% endfor %}
+  {% for med in alertas.receta_vence_pronto %}
+  <div class="alert alert-warning" style="margin-bottom:0.5rem;">📋 Receta por vencer: <strong>{{ med.nombre }}</strong> ({{ med.paciente.nombre }}) — vence el {{ med.fecha_vencimiento_receta }}</div>
+  {% endfor %}
+  {% for med in alertas.stock_bajo %}
+  <div class="alert alert-warning" style="margin-bottom:0.5rem;">📦 Stock bajo: <strong>{{ med.nombre }}</strong> ({{ med.paciente.nombre }}) — quedan {{ med.stock_actual }} unidades.</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Acceso rápido tomas del día -->
+<a href="/medicamentos/hoy/" class="card mb-3" style="text-decoration:none;display:flex;align-items:center;gap:1rem;border-left:4px solid var(--color-primary);">
+  <div style="font-size:2rem;">⏰</div>
+  <div>
+    <div style="font-weight:700;color:var(--color-primary);">Tomas del día de hoy</div>
+    <div class="text-muted text-sm">Ver y confirmar todas las tomas programadas para hoy</div>
+  </div>
+  <span style="margin-left:auto;color:var(--color-primary);">→</span>
+</a>
+
+<!-- Medicamentos por paciente -->
+{% if por_paciente %}
+  {% for paciente, meds in por_paciente.items %}
+  <div class="card mb-3">
+    <div class="card-header">
+      <div class="flex items-center gap-2">
+        <div class="avatar">{{ paciente.nombre|first|upper }}</div>
+        <div>
+          <div style="font-weight:700;">{{ paciente.nombre }}</div>
+          <div class="text-muted text-sm">{{ meds|length }} medicamento{{ meds|length|pluralize }}</div>
+        </div>
+      </div>
+      <a href="/medicamentos/nuevo/paciente/{{ paciente.id }}/" class="btn btn-outline btn-sm">+ Agregar</a>
+    </div>
+
+    {% for med in meds %}
+    <a href="/medicamentos/{{ med.id }}/" style="display:flex;align-items:center;gap:1rem;padding:0.875rem;border-radius:var(--radius-md);border:1px solid var(--color-border);margin-bottom:0.625rem;text-decoration:none;color:inherit;transition:var(--transition);"
+       onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='none'">
+      <!-- Ícono estado -->
+      <div style="width:44px;height:44px;border-radius:10px;background:{% if med.estado == 'activo' %}rgba(39,174,96,0.12){% elif med.estado == 'pausado' %}rgba(243,156,18,0.12){% else %}rgba(231,76,60,0.12){% endif %};display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">
+        {% if med.estado == 'activo' %}💊{% elif med.estado == 'pausado' %}⏸️{% else %}🚫{% endif %}
+      </div>
+      <!-- Info principal -->
+      <div style="flex:1;">
+        <div style="font-weight:700;">{{ med.nombre }}</div>
+        <div class="text-muted text-sm">{{ med.dosis }} · {{ med.get_horarios_display }}</div>
+        {% if med.instrucciones %}<div class="text-sm" style="color:var(--color-accent);">ℹ️ {{ med.instrucciones|truncatechars:60 }}</div>{% endif %}
+      </div>
+      <!-- Alertas del medicamento -->
+      <div style="display:flex;flex-direction:column;gap:0.3rem;align-items:flex-end;">
+        <span class="badge {% if med.estado == 'activo' %}badge-confirmada{% elif med.estado == 'pausado' %}badge-programada{% else %}badge-cancelada{% endif %}">
+          {{ med.get_estado_display }}
+        </span>
+        {% if med.stock_bajo %}<span class="badge" style="background:rgba(230,126,34,0.1);color:var(--color-accent);">📦 Stock bajo</span>{% endif %}
+        {% if med.receta_vencida %}<span class="badge badge-cancelada">📋 Receta vencida</span>{% endif %}
+        {% if med.medicamento_vencido %}<span class="badge badge-cancelada">❌ Vencido</span>{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% endfor %}
+{% else %}
+<div class="empty-state card">
+  <div class="empty-state-icon">💊</div>
+  <h3 class="empty-state-title">Sin medicamentos registrados</h3>
+  <p class="empty-state-text">Registra los medicamentos de tus pacientes para recibir recordatorios automáticos de toma</p>
+  <a href="/medicamentos/nuevo/" class="btn btn-primary">Registrar primer medicamento</a>
+</div>
+{% endif %}
+{% endblock %}

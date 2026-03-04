@@ -1,0 +1,79 @@
+{% extends 'base/base.html' %}
+{% block title %}{{ titulo }} - Don Vital{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="/pacientes/" class="btn btn-ghost btn-sm mb-1">← Volver</a>
+    <h1 class="page-title">{{ titulo }}</h1>
+  </div>
+</div>
+<div style="max-width:720px;">
+  <div class="card">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="grid-2">
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label">Nombre completo *</label>
+          {{ form.nombre }}
+          {% if form.nombre.errors %}<p class="form-error">{{ form.nombre.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fecha de nacimiento *</label>
+          {{ form.fecha_nacimiento }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cédula</label>
+          {{ form.cedula }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">EPS</label>
+          {{ form.eps }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">N° Afiliación EPS</label>
+          {{ form.numero_afiliacion }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Grupo sanguíneo</label>
+          {{ form.grupo_sanguineo }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono de emergencia</label>
+          {{ form.telefono_emergencia }}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">⚠️ Alergias conocidas</label>
+        {{ form.alergias }}
+        <p class="form-help">Información crítica para el médico</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">💊 Medicamentos actuales</label>
+        {{ form.medicamentos_actuales }}
+      </div>
+      <div class="form-group">
+        <label class="form-label">🏥 Condiciones médicas</label>
+        {{ form.condiciones_medicas }}
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Foto del paciente</label>
+          {{ form.foto }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Foto carnet EPS</label>
+          {{ form.foto_carnet_eps }}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notas adicionales</label>
+        {{ form.notas }}
+      </div>
+      <div class="flex gap-2 justify-end mt-3">
+        <a href="/pacientes/" class="btn btn-outline">Cancelar</a>
+        <button type="submit" class="btn btn-primary btn-lg">💾 Guardar paciente</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

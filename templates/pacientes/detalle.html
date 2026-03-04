@@ -1,0 +1,63 @@
+{% extends 'base/base.html' %}
+{% block title %}{{ paciente.nombre }} - Don Vital{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="/pacientes/" class="btn btn-ghost btn-sm mb-1">← Volver</a>
+    <h1 class="page-title">{{ paciente.nombre }}</h1>
+    <p class="page-subtitle">{{ paciente.edad }} años · {{ paciente.eps }}</p>
+  </div>
+  <div class="flex gap-1">
+    <a href="/citas/nueva/" class="btn btn-primary">📅 Nueva Cita</a>
+    <a href="/pacientes/{{ paciente.id }}/editar/" class="btn btn-outline">✏️ Editar</a>
+  </div>
+</div>
+<div class="grid-2" style="gap:1.5rem;align-items:start;">
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">Información médica</h2></div>
+    <div style="display:grid;gap:0.875rem;">
+      {% if paciente.cedula %}<div><span class="text-muted text-sm">Cédula</span><div style="font-weight:600;">{{ paciente.cedula }}</div></div>{% endif %}
+      {% if paciente.numero_afiliacion %}<div><span class="text-muted text-sm">N° afiliación EPS</span><div style="font-weight:600;">{{ paciente.numero_afiliacion }}</div></div>{% endif %}
+      {% if paciente.grupo_sanguineo %}<div><span class="text-muted text-sm">Grupo sanguíneo</span><div style="font-weight:600;font-size:1.2rem;">{{ paciente.grupo_sanguineo }}</div></div>{% endif %}
+      {% if paciente.alergias %}<div style="background:rgba(231,76,60,0.08);padding:0.75rem;border-radius:var(--radius-sm);"><span style="color:var(--color-danger);font-weight:700;">⚠️ Alergias</span><div>{{ paciente.alergias }}</div></div>{% endif %}
+      {% if paciente.medicamentos_actuales %}<div><span class="text-muted text-sm">Medicamentos actuales</span><div>{{ paciente.medicamentos_actuales }}</div></div>{% endif %}
+      {% if paciente.condiciones_medicas %}<div><span class="text-muted text-sm">Condiciones médicas</span><div>{{ paciente.condiciones_medicas }}</div></div>{% endif %}
+      {% if paciente.telefono_emergencia %}<div><span class="text-muted text-sm">Teléfono emergencia</span><div style="font-weight:600;">📞 {{ paciente.telefono_emergencia }}</div></div>{% endif %}
+    </div>
+  </div>
+  <div>
+    <div class="card mb-2">
+      <div class="card-header">
+        <h2 class="card-title">Próximas citas</h2>
+        <a href="/citas/nueva/" class="btn btn-primary btn-sm">+ Nueva</a>
+      </div>
+      {% for cita in citas_proximas %}
+      <a href="/citas/{{ cita.id }}/" class="cita-card">
+        <div class="cita-fecha"><span class="dia">{{ cita.fecha|date:"d" }}</span><span class="mes">{{ cita.fecha|date:"M" }}</span></div>
+        <div class="cita-info">
+          <div class="cita-especialidad">{{ cita.especialidad }}</div>
+          <div class="cita-hora-lugar">🕐 {{ cita.hora|time:"H:i" }} · {{ cita.lugar|truncatechars:30 }}</div>
+        </div>
+        <span class="badge badge-{{ cita.estado }}">{{ cita.get_estado_display }}</span>
+      </a>
+      {% empty %}
+      <p class="text-muted text-sm" style="padding:0.5rem 0;">Sin citas próximas</p>
+      {% endfor %}
+    </div>
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">Cuidadores</h2></div>
+      {% for rel in cuidadores %}
+      <div class="flex items-center gap-3" style="padding:0.75rem 0;border-bottom:1px solid var(--color-border);">
+        <div class="avatar">{{ rel.usuario.nombre|first|upper }}</div>
+        <div style="flex:1;">
+          <div style="font-weight:600;">{{ rel.usuario.nombre }}</div>
+          <div class="text-muted text-sm">{{ rel.rol|capfirst }} {% if rel.relacion %}· {{ rel.relacion }}{% endif %}</div>
+        </div>
+      </div>
+      {% empty %}
+      <p class="text-muted text-sm">Sin cuidadores asignados</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

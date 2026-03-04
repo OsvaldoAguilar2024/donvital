@@ -1,0 +1,51 @@
+{% extends 'base/base.html' %}
+{% block title %}Mis Pacientes - Don Vital{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">👴 Mis Pacientes</h1>
+    <p class="page-subtitle">{{ pacientes.count }} paciente{{ pacientes.count|pluralize }} registrado{{ pacientes.count|pluralize }}</p>
+  </div>
+  <a href="/pacientes/nuevo/" class="btn btn-primary">➕ Nuevo Paciente</a>
+</div>
+
+{% if pacientes %}
+<div class="grid-2">
+  {% for paciente in pacientes %}
+  <a href="/pacientes/{{ paciente.id }}/" class="card" style="text-decoration:none;color:inherit;transition:var(--transition);" 
+     onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='var(--shadow-sm)'">
+    <div class="flex items-center gap-3 mb-2">
+      <div class="avatar avatar-lg">
+        {% if paciente.foto %}
+          <img src="{{ paciente.foto.url }}" alt="{{ paciente.nombre }}">
+        {% else %}
+          {{ paciente.nombre|first|upper }}
+        {% endif %}
+      </div>
+      <div>
+        <div style="font-weight:700;font-size:var(--font-size-lg);">{{ paciente.nombre }}</div>
+        <div class="text-muted">{{ paciente.edad }} años · {{ paciente.eps }}</div>
+      </div>
+    </div>
+    {% if paciente.alergias %}
+    <div style="font-size:0.8rem;color:var(--color-danger);margin-bottom:0.75rem;">⚠️ {{ paciente.alergias|truncatechars:60 }}</div>
+    {% endif %}
+    <div class="flex gap-2" style="flex-wrap:wrap;">
+      {% with proxima=paciente.citas.all|dictsort:"fecha"|first %}
+      {% if proxima %}
+      <span class="badge badge-programada">📅 Próxima: {{ proxima.fecha|date:"d/m/Y" }}</span>
+      {% endif %}
+      {% endwith %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state card">
+  <div class="empty-state-icon">👴</div>
+  <h3 class="empty-state-title">Sin pacientes registrados</h3>
+  <p class="empty-state-text">Registra el primer paciente para empezar a gestionar sus citas</p>
+  <a href="/pacientes/nuevo/" class="btn btn-primary">Registrar primer paciente</a>
+</div>
+{% endif %}
+{% endblock %}

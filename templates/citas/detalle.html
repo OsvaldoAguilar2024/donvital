@@ -1,0 +1,130 @@
+{% extends 'base/base.html' %}
+{% block title %}Cita - {{ cita.paciente.nombre }} - Don Vital{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="/citas/" class="btn btn-ghost btn-sm mb-1">← Volver</a>
+    <h1 class="page-title">{{ cita.especialidad }}</h1>
+    <p class="page-subtitle">👴 {{ cita.paciente.nombre }}</p>
+  </div>
+  <div class="flex gap-1">
+    {% if cita.estado == 'programada' %}
+    <form method="post" action="/citas/{{ cita.id }}/confirmar/">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-secondary">✅ Confirmar asistencia</button>
+    </form>
+    {% endif %}
+    <a href="/citas/{{ cita.id }}/editar/" class="btn btn-outline">✏️ Editar</a>
+  </div>
+</div>
+
+<div class="grid-2" style="gap:1.5rem;align-items:start;">
+  <!-- Info principal -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Detalles de la cita</h2>
+      <span class="badge badge-{{ cita.estado }}">{{ cita.get_estado_display }}</span>
+    </div>
+    <div style="display:grid;gap:1rem;">
+      <div class="flex items-center gap-2">
+        <span style="font-size:1.5rem;">📅</span>
+        <div>
+          <div style="font-weight:600;">{{ cita.fecha|date:"l, d \d\e F \d\e Y" }}</div>
+          <div class="text-muted text-sm">Fecha</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span style="font-size:1.5rem;">🕐</span>
+        <div>
+          <div style="font-weight:600;font-size:1.3rem;">{{ cita.hora|time:"H:i" }}</div>
+          <div class="text-muted text-sm">Hora</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span style="font-size:1.5rem;">📍</span>
+        <div>
+          <div style="font-weight:600;">{{ cita.lugar }}</div>
+          {% if cita.direccion %}<div class="text-muted text-sm">{{ cita.direccion }}</div>{% endif %}
+        </div>
+      </div>
+      {% if cita.medico %}
+      <div class="flex items-center gap-2">
+        <span style="font-size:1.5rem;">👨‍⚕️</span>
+        <div>
+          <div style="font-weight:600;">{{ cita.medico }}</div>
+          <div class="text-muted text-sm">Médico</div>
+        </div>
+      </div>
+      {% endif %}
+      {% if cita.documentos_requeridos %}
+      <div style="background:rgba(243,156,18,0.1);border:1px solid rgba(243,156,18,0.3);border-radius:var(--radius-md);padding:1rem;">
+        <div style="font-weight:700;margin-bottom:0.5rem;">📋 Documentos a llevar:</div>
+        <div>{{ cita.documentos_requeridos }}</div>
+      </div>
+      {% endif %}
+      {% if cita.notas %}
+      <div>
+        <div style="font-weight:600;margin-bottom:0.35rem;">📝 Notas:</div>
+        <div class="text-muted">{{ cita.notas }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <!-- Info del paciente -->
+    <div class="card mb-2">
+      <div class="card-header">
+        <h2 class="card-title">Paciente</h2>
+        <a href="/pacientes/{{ cita.paciente.id }}/" class="btn btn-ghost btn-sm">Ver ficha</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="avatar avatar-lg">{{ cita.paciente.nombre|first|upper }}</div>
+        <div>
+          <div style="font-weight:700;font-size:var(--font-size-lg);">{{ cita.paciente.nombre }}</div>
+          <div class="text-muted">{{ cita.paciente.edad }} años · {{ cita.paciente.eps }}</div>
+          {% if cita.paciente.alergias %}
+          <div style="color:var(--color-danger);font-size:0.85rem;margin-top:0.3rem;">⚠️ Alergia: {{ cita.paciente.alergias|truncatechars:60 }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Recordatorios -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">🔔 Recordatorios</h2>
+      </div>
+      {% if recordatorios %}
+        {% for r in recordatorios %}
+        <div class="flex items-center gap-2" style="padding:0.75rem 0;border-bottom:1px solid var(--color-border);">
+          <span>{% if r.enviado %}✅{% else %}⏳{% endif %}</span>
+          <div style="flex:1;">
+            <div style="font-weight:600;font-size:0.875rem;">{{ r.get_tipo_display }}</div>
+            <div class="text-muted text-sm">{{ r.get_canal_display }} · {{ r.programado_para|date:"d/m H:i" }}</div>
+          </div>
+          {% if r.enviado %}<span class="badge" style="background:rgba(39,174,96,0.1);color:green;">Enviado</span>{% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted text-sm">Los recordatorios se programan automáticamente al guardar la cita.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if cita.estado not in 'cancelada,completada,perdida' %}
+<div class="card mt-3" style="border-color:rgba(231,76,60,0.3);">
+  <div class="flex items-center justify-between">
+    <div>
+      <div style="font-weight:600;color:var(--color-danger);">Cancelar cita</div>
+      <div class="text-muted text-sm">Esta acción no se puede deshacer fácilmente</div>
+    </div>
+    <form method="post" action="/citas/{{ cita.id }}/cancelar/" onsubmit="return confirm('¿Confirmas cancelar esta cita?')">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger btn-sm">Cancelar cita</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends 'base/base.html' %}
+{% block title %}Dashboard - Don Vital{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Bienvenido/a, {{ request.user.nombre|truncatechars:20 }} 👋</h1>
+    <p class="page-subtitle">{{ hoy|date:"l, d \d\e F \d\e Y" }}</p>
+  </div>
+  <a href="/citas/nueva/" class="btn btn-primary">
+    ➕ Nueva Cita
+  </a>
+</div>
+
+<!-- Stats rápidas -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon blue">📅</div>
+    <div class="stat-info">
+      <div class="stat-number">{{ citas_hoy.count }}</div>
+      <div class="stat-label">Citas hoy</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">🗓️</div>
+    <div class="stat-info">
+      <div class="stat-number">{{ citas_proximas.count }}</div>
+      <div class="stat-label">Próximas citas</div>
+    </div>
+  </div>
+  {% if pacientes %}
+  <div class="stat-card">
+    <div class="stat-icon orange">👴</div>
+    <div class="stat-info">
+      <div class="stat-number">{{ pacientes.count }}</div>
+      <div class="stat-label">Paciente{{ pacientes.count|pluralize }}</div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="stat-card">
+    <div class="stat-icon red">🔔</div>
+    <div class="stat-info">
+      <div class="stat-number">{{ notifs_count }}</div>
+      <div class="stat-label">Alertas nuevas</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2" style="gap:1.5rem;align-items:start;">
+
+  <!-- Citas de hoy -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">📅 Citas de hoy</h2>
+      <a href="/citas/" class="btn btn-ghost btn-sm">Ver todas</a>
+    </div>
+    {% if citas_hoy %}
+      {% for cita in citas_hoy %}
+      <a href="/citas/{{ cita.id }}/" class="cita-card">
+        <div class="cita-fecha">
+          <span class="dia">{{ cita.hora|time:"H:i" }}</span>
+          <span class="mes">hoy</span>
+        </div>
+        <div class="cita-info">
+          <div class="cita-especialidad">{{ cita.especialidad }}</div>
+          <div class="cita-paciente">👴 {{ cita.paciente.nombre }}</div>
+          <div class="cita-hora-lugar">📍 {{ cita.lugar }}</div>
+        </div>
+        <div class="cita-actions">
+          <span class="badge badge-{{ cita.estado }}">{{ cita.get_estado_display }}</span>
+          {% if cita.estado == 'programada' %}
+          <form method="post" action="/citas/{{ cita.id }}/confirmar/">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary btn-sm" onclick="event.stopPropagation()">
+              ✅ Confirmar
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state" style="padding:2rem 1rem;">
+        <div class="empty-state-icon">🎉</div>
+        <p class="empty-state-title" style="font-size:1rem;">Sin citas hoy</p>
+        <p class="text-muted text-sm">¡Día libre de citas médicas!</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Próximas citas -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">🗓️ Próximas citas</h2>
+      <a href="/citas/nueva/" class="btn btn-primary btn-sm">+ Nueva</a>
+    </div>
+    {% if citas_proximas %}
+      {% for cita in citas_proximas %}
+      <a href="/citas/{{ cita.id }}/" class="cita-card">
+        <div class="cita-fecha" style="background:var(--color-secondary);">
+          <span class="dia">{{ cita.fecha|date:"d" }}</span>
+          <span class="mes">{{ cita.fecha|date:"M" }}</span>
+        </div>
+        <div class="cita-info">
+          <div class="cita-especialidad">{{ cita.especialidad }}</div>
+          <div class="cita-paciente">👴 {{ cita.paciente.nombre }}</div>
+          <div class="cita-hora-lugar">🕐 {{ cita.hora|time:"H:i" }} · 📍 {{ cita.lugar|truncatechars:30 }}</div>
+        </div>
+        <span class="badge badge-{{ cita.estado }}">{{ cita.get_estado_display }}</span>
+      </a>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state" style="padding:2rem 1rem;">
+        <div class="empty-state-icon">📅</div>
+        <p class="empty-state-title" style="font-size:1rem;">Sin citas próximas</p>
+        <a href="/citas/nueva/" class="btn btn-primary btn-sm mt-2">Registrar cita</a>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Notificaciones recientes -->
+{% if notifs_recientes %}
+<div class="card mt-3">
+  <div class="card-header">
+    <h2 class="card-title">🔔 Alertas recientes</h2>
+    <a href="/notificaciones/" class="btn btn-ghost btn-sm">Ver todas</a>
+  </div>
+  {% for notif in notifs_recientes %}
+  <div class="notif-item {% if not notif.leida %}no-leida{% endif %}">
+    <div class="notif-dot"></div>
+    <div style="flex:1;">
+      <div style="font-weight:600;font-size:0.9rem;">{{ notif.titulo }}</div>
+      <div class="text-sm text-muted mt-1">{{ notif.mensaje|truncatechars:100 }}</div>
+      <div class="text-sm text-muted" style="margin-top:0.25rem;">{{ notif.creado_at|timesince }} atrás</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

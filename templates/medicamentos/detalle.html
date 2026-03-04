@@ -1,0 +1,168 @@
+{% extends 'base/base.html' %}
+{% block title %}{{ med.nombre }} - Don Vital{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="/medicamentos/" class="btn btn-ghost btn-sm mb-1">← Medicamentos</a>
+    <h1 class="page-title">💊 {{ med.nombre }}</h1>
+    <p class="page-subtitle">👴 {{ med.paciente.nombre }} · {{ med.dosis }}</p>
+  </div>
+  <div class="flex gap-1">
+    <a href="/medicamentos/{{ med.id }}/editar/" class="btn btn-outline">✏️ Editar</a>
+  </div>
+</div>
+
+<!-- Alertas urgentes -->
+{% if med.medicamento_vencido %}
+<div class="alert alert-error mb-2">❌ Este medicamento está VENCIDO ({{ med.fecha_vencimiento_medicamento }}). No administrar hasta reemplazarlo.</div>
+{% endif %}
+{% if med.receta_vencida %}
+<div class="alert alert-error mb-2">📋 La receta está VENCIDA ({{ med.fecha_vencimiento_receta }}). Renovar con el médico antes de continuar.</div>
+{% endif %}
+{% if med.receta_vence_pronto %}
+<div class="alert alert-warning mb-2">📋 La receta vence el {{ med.fecha_vencimiento_receta }}. Solicitar renovación pronto.</div>
+{% endif %}
+{% if med.stock_bajo %}
+<div class="alert alert-warning mb-2">📦 Stock bajo: quedan {{ med.stock_actual }} unidades. Mínimo recomendado: {{ med.stock_minimo_alerta }}.</div>
+{% endif %}
+
+<div class="grid-2" style="gap:1.5rem;align-items:start;">
+
+  <!-- Columna izquierda: info + tomas hoy -->
+  <div>
+    <!-- Info del medicamento -->
+    <div class="card mb-2">
+      <div class="card-header">
+        <h2 class="card-title">Prescripción médica</h2>
+        <span class="badge {% if med.estado == 'activo' %}badge-confirmada{% elif med.estado == 'pausado' %}badge-programada{% else %}badge-cancelada{% endif %}">
+          {{ med.get_estado_display }}
+        </span>
+      </div>
+      <div style="display:grid;gap:0.875rem;">
+        {% if med.principio_activo %}<div><div class="text-muted text-sm">Principio activo</div><div style="font-weight:600;">{{ med.principio_activo }}</div></div>{% endif %}
+        {% if med.presentacion %}<div><div class="text-muted text-sm">Presentación</div><div style="font-weight:600;">{{ med.presentacion }}</div></div>{% endif %}
+        <div><div class="text-muted text-sm">Dosis por toma</div><div style="font-weight:700;font-size:1.1rem;color:var(--color-primary);">{{ med.dosis }}</div></div>
+        {% if med.via_administracion %}<div><div class="text-muted text-sm">Vía de administración</div><div style="font-weight:600;">{{ med.via_administracion }}</div></div>{% endif %}
+        <div style="background:rgba(27,79,114,0.06);padding:0.875rem;border-radius:var(--radius-md);">
+          <div class="text-muted text-sm">Frecuencia de toma</div>
+          <div style="font-weight:700;">⏰ {{ med.get_horarios_display }}</div>
+          <div class="text-muted text-sm">{{ med.get_frecuencia_tipo_display }}</div>
+        </div>
+        {% if med.instrucciones %}
+        <div style="background:rgba(230,126,34,0.08);padding:0.875rem;border-radius:var(--radius-md);">
+          <div class="text-muted text-sm">⚠️ Instrucciones especiales</div>
+          <div style="font-weight:600;">{{ med.instrucciones }}</div>
+        </div>
+        {% endif %}
+        {% if med.medico_prescriptor %}<div><div class="text-muted text-sm">Médico prescriptor</div><div style="font-weight:600;">👨‍⚕️ {{ med.medico_prescriptor }}</div></div>{% endif %}
+        <div class="grid-2" style="gap:0.75rem;">
+          <div><div class="text-muted text-sm">Inicio tratamiento</div><div style="font-weight:600;">{{ med.fecha_inicio }}</div></div>
+          {% if med.fecha_fin %}<div><div class="text-muted text-sm">Fin tratamiento</div><div style="font-weight:600;">{{ med.fecha_fin }}</div></div>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Stock y receta -->
+    <div class="card mb-2">
+      <div class="card-header"><h2 class="card-title">📦 Stock y receta</h2></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        {% if med.stock_actual is not None %}
+        <div style="text-align:center;background:{% if med.stock_bajo %}rgba(231,76,60,0.08){% else %}rgba(39,174,96,0.08){% endif %};padding:1rem;border-radius:var(--radius-md);">
+          <div style="font-size:2rem;font-weight:800;color:{% if med.stock_bajo %}var(--color-danger){% else %}var(--color-secondary){% endif %};">{{ med.stock_actual }}</div>
+          <div class="text-sm text-muted">Unidades disponibles</div>
+          {% if med.stock_minimo_alerta %}<div class="text-sm" style="color:var(--color-accent);">Alerta en {{ med.stock_minimo_alerta }}</div>{% endif %}
+        </div>
+        {% endif %}
+        {% if med.fecha_vencimiento_medicamento %}
+        <div style="text-align:center;background:{% if med.medicamento_vencido %}rgba(231,76,60,0.08){% else %}rgba(27,79,114,0.06){% endif %};padding:1rem;border-radius:var(--radius-md);">
+          <div style="font-size:0.8rem;color:var(--color-text-muted);">Vencimiento medicamento</div>
+          <div style="font-weight:700;color:{% if med.medicamento_vencido %}var(--color-danger){% else %}var(--color-text){% endif %};">{{ med.fecha_vencimiento_medicamento }}</div>
+        </div>
+        {% endif %}
+        {% if med.requiere_renovacion_receta and med.fecha_vencimiento_receta %}
+        <div style="text-align:center;background:{% if med.receta_vencida %}rgba(231,76,60,0.08){% elif med.receta_vence_pronto %}rgba(243,156,18,0.08){% else %}rgba(27,79,114,0.06){% endif %};padding:1rem;border-radius:var(--radius-md);grid-column:1/-1;">
+          <div style="font-size:0.8rem;color:var(--color-text-muted);">Vencimiento de receta médica</div>
+          <div style="font-weight:700;color:{% if med.receta_vencida %}var(--color-danger){% elif med.receta_vence_pronto %}var(--color-warning){% else %}var(--color-text){% endif %};">{{ med.fecha_vencimiento_receta }}</div>
+          {% if med.receta_vencida %}<div class="text-sm" style="color:var(--color-danger);">⚠️ VENCIDA — Renovar con el médico</div>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Columna derecha: tomas del día + historial -->
+  <div>
+    <!-- Tomas de hoy -->
+    <div class="card mb-2">
+      <div class="card-header">
+        <h2 class="card-title">📅 Tomas de hoy</h2>
+        <span class="text-muted text-sm">{{ hoy }}</span>
+      </div>
+      {% if tomas_hoy %}
+        {% for toma in tomas_hoy %}
+        <div style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem;border-radius:var(--radius-md);border:1px solid var(--color-border);margin-bottom:0.625rem;background:{% if toma.estado == 'tomado' %}rgba(39,174,96,0.05){% elif toma.estado == 'omitido' %}rgba(231,76,60,0.05){% elif toma.estado == 'retrasado' %}rgba(243,156,18,0.05){% else %}white{% endif %};">
+          <div style="font-size:1.5rem;">
+            {% if toma.estado == 'tomado' %}✅{% elif toma.estado == 'omitido' %}❌{% elif toma.estado == 'retrasado' %}⚠️{% else %}⏳{% endif %}
+          </div>
+          <div style="flex:1;">
+            <div style="font-weight:700;">{{ toma.hora_programada|time:"H:i" }}</div>
+            <div class="text-sm text-muted">{{ toma.get_estado_display }}</div>
+            {% if toma.confirmado_por %}<div class="text-sm text-muted">por {{ toma.confirmado_por.nombre }} · {{ toma.hora_real_toma|time:"H:i" }}</div>{% endif %}
+            {% if toma.notas_toma %}<div class="text-sm" style="color:var(--color-accent);">{{ toma.notas_toma }}</div>{% endif %}
+          </div>
+          {% if toma.estado in 'pendiente,retrasado' %}
+          <div style="display:flex;flex-direction:column;gap:0.4rem;">
+            <form method="post" action="/medicamentos/toma/{{ toma.id }}/confirmar/">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-secondary btn-sm">✅ Tomó</button>
+            </form>
+            <form method="post" action="/medicamentos/toma/{{ toma.id }}/omitir/">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--color-danger);">❌ Omitió</button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted text-sm">Sin tomas programadas para hoy.</p>
+      {% endif %}
+    </div>
+
+    <!-- Historial 7 días -->
+    <div class="card mb-2">
+      <div class="card-header"><h2 class="card-title">📊 Últimos 7 días</h2></div>
+      {% if tomas_semana %}
+        <div style="display:grid;gap:0.5rem;">
+        {% for toma in tomas_semana|slice:":14" %}
+        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0;border-bottom:1px solid rgba(0,0,0,0.04);">
+          <span>{% if toma.estado == 'tomado' %}✅{% elif toma.estado == 'omitido' %}❌{% elif toma.estado == 'retrasado' %}⚠️{% else %}⏳{% endif %}</span>
+          <div style="flex:1;">
+            <span style="font-size:0.85rem;font-weight:600;">{{ toma.fecha_programada|date:"d/m" }} {{ toma.hora_programada|time:"H:i" }}</span>
+            <span class="text-muted text-sm"> · {{ toma.get_estado_display }}</span>
+          </div>
+          {% if toma.notas_toma %}<span class="text-sm text-muted">{{ toma.notas_toma|truncatechars:30 }}</span>{% endif %}
+        </div>
+        {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted text-sm">Sin registros en los últimos 7 días.</p>
+      {% endif %}
+    </div>
+
+    <!-- Historial de cambios -->
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">📋 Historial de cambios</h2></div>
+      {% for h in historial %}
+      <div style="padding:0.625rem 0;border-bottom:1px solid rgba(0,0,0,0.04);">
+        <div style="font-size:0.85rem;font-weight:600;">{{ h.accion }}</div>
+        {% if h.detalle %}<div class="text-muted text-sm">{{ h.detalle }}</div>{% endif %}
+        <div class="text-sm text-muted">{{ h.creado_at|date:"d/m/Y H:i" }} {% if h.usuario %}· {{ h.usuario.nombre }}{% endif %}</div>
+      </div>
+      {% empty %}
+      <p class="text-muted text-sm">Sin historial de cambios.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

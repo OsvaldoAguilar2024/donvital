@@ -1,0 +1,222 @@
+{% extends 'base/base.html' %}
+{% block title %}{{ titulo }} - Don Vital{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="/medicamentos/" class="btn btn-ghost btn-sm mb-1">← Medicamentos</a>
+    <h1 class="page-title">💊 {{ titulo }}</h1>
+  </div>
+</div>
+<div style="max-width:800px;">
+<form method="post" enctype="multipart/form-data">
+{% csrf_token %}
+
+{% if pacientes and not paciente_inicial %}
+<div class="card mb-2">
+  <h3 style="font-weight:700;margin-bottom:1rem;">👴 ¿Para qué paciente?</h3>
+  <div class="form-group">
+    <label class="form-label">Paciente *</label>
+    <select name="paciente" class="form-input" required>
+      <option value="">Selecciona un paciente...</option>
+      {% for p in pacientes %}<option value="{{ p.id }}">{{ p.nombre }}</option>{% endfor %}
+    </select>
+  </div>
+</div>
+{% elif paciente_inicial %}
+<div class="card mb-2" style="background:rgba(27,79,114,0.04);">
+  <div class="flex items-center gap-3">
+    <div class="avatar">{{ paciente_inicial.nombre|first|upper }}</div>
+    <div><div style="font-weight:700;">{{ paciente_inicial.nombre }}</div><div class="text-muted text-sm">Medicamento para este paciente</div></div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Información básica -->
+<div class="card mb-2">
+  <h3 style="font-weight:700;margin-bottom:1rem;font-family:var(--font-display);">💊 Información del medicamento</h3>
+  <div class="grid-2">
+    <div class="form-group" style="grid-column:1/-1;">
+      <label class="form-label">Nombre del medicamento *</label>
+      {{ form.nombre }}{% if form.nombre.errors %}<p class="form-error">{{ form.nombre.errors.0 }}</p>{% endif %}
+    </div>
+    <div class="form-group">
+      <label class="form-label">Principio activo</label>
+      {{ form.principio_activo }}
+    </div>
+    <div class="form-group">
+      <label class="form-label">Presentación</label>
+      {{ form.presentacion }}<p class="form-help">Ej: Tableta 500mg, Jarabe 250mg/5ml</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Dosis por toma *</label>
+      {{ form.dosis }}{% if form.dosis.errors %}<p class="form-error">{{ form.dosis.errors.0 }}</p>{% endif %}
+      <p class="form-help">Ej: 1 tableta, 5ml, 2 cápsulas</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Vía de administración</label>
+      {{ form.via_administracion }}
+    </div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Instrucciones especiales</label>
+    {{ form.instrucciones }}
+  </div>
+</div>
+
+<!-- Frecuencia -->
+<div class="card mb-2">
+  <h3 style="font-weight:700;margin-bottom:1rem;font-family:var(--font-display);">⏰ Frecuencia de toma</h3>
+  <p class="text-muted text-sm mb-2">Configura exactamente como lo indica la prescripción médica.</p>
+  <div class="form-group">
+    <label class="form-label">Tipo de frecuencia *</label>
+    {{ form.frecuencia_tipo }}
+  </div>
+
+  <!-- Cada X horas -->
+  <div id="bloque_horas" style="display:none;">
+    <div class="form-group">
+      <label class="form-label">Intervalo en horas</label>
+      {{ form.intervalo_horas }}
+      {% if form.intervalo_horas.errors %}<p class="form-error">{{ form.intervalo_horas.errors.0 }}</p>{% endif %}
+      <p class="form-help">Ej: 8 para "cada 8 horas", 12 para "cada 12 horas"</p>
+    </div>
+  </div>
+
+  <!-- Veces al día -->
+  <div id="bloque_veces" style="display:none;">
+    <div class="form-group">
+      <label class="form-label">Horarios de toma *</label>
+      {{ form.horarios_texto }}
+      {% if form.horarios_texto.errors %}<p class="form-error">{{ form.horarios_texto.errors.0 }}</p>{% endif %}
+      <p class="form-help">Ej: 08:00, 14:00, 20:00 (separados por coma)</p>
+    </div>
+  </div>
+
+  <!-- Días específicos -->
+  <div id="bloque_dias" style="display:none;">
+    <div class="form-group">
+      <label class="form-label">Días de la semana *</label>
+      <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-top:0.5rem;">
+        {% for value, label in form.dias_seleccionados.field.choices %}
+        <label style="display:flex;align-items:center;gap:0.4rem;background:var(--color-bg);padding:0.5rem 1rem;border-radius:var(--radius-full);border:2px solid var(--color-border);cursor:pointer;font-weight:600;font-size:0.9rem;">
+          <input type="checkbox" name="dias_seleccionados" value="{{ value }}" 
+            {% if value|stringformat:"s" in form.dias_seleccionados.value|default_if_none:"" %}checked{% endif %}
+            style="accent-color:var(--color-primary);">
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+      {% if form.dias_seleccionados.errors %}<p class="form-error">{{ form.dias_seleccionados.errors.0 }}</p>{% endif %}
+    </div>
+    <div class="form-group">
+      <label class="form-label">Horario en esos días</label>
+      {{ form.horarios_texto }}
+      <p class="form-help">Ej: 08:00 (o varios: 08:00, 20:00)</p>
+    </div>
+  </div>
+</div>
+
+<!-- Prescripción médica -->
+<div class="card mb-2">
+  <h3 style="font-weight:700;margin-bottom:1rem;font-family:var(--font-display);">📋 Prescripción médica</h3>
+  <div class="grid-2">
+    <div class="form-group">
+      <label class="form-label">Médico que prescribe</label>
+      {{ form.medico_prescriptor }}
+    </div>
+    <div class="form-group">
+      <label class="form-label">N° de receta</label>
+      {{ form.numero_receta }}
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fecha de inicio *</label>
+      {{ form.fecha_inicio }}{% if form.fecha_inicio.errors %}<p class="form-error">{{ form.fecha_inicio.errors.0 }}</p>{% endif %}
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fecha de fin (si aplica)</label>
+      {{ form.fecha_fin }}
+    </div>
+    <div class="form-group">
+      <label class="form-label">Duración en días</label>
+      {{ form.duracion_dias }}<p class="form-help">Dejar vacío si es tratamiento indefinido</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Foto de la receta</label>
+      {{ form.foto_receta }}
+    </div>
+  </div>
+  <div class="form-group">
+    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:600;">
+      {{ form.requiere_renovacion_receta }} ¿Esta receta necesita renovación periódica?
+    </label>
+  </div>
+  <div class="grid-2" id="bloque_receta_renovacion">
+    <div class="form-group">
+      <label class="form-label">Fecha vencimiento receta</label>
+      {{ form.fecha_vencimiento_receta }}
+    </div>
+    <div class="form-group">
+      <label class="form-label">Alertar X días antes</label>
+      {{ form.dias_alerta_vencimiento_receta }}
+    </div>
+  </div>
+</div>
+
+<!-- Stock -->
+<div class="card mb-2">
+  <h3 style="font-weight:700;margin-bottom:1rem;font-family:var(--font-display);">📦 Control de stock (opcional)</h3>
+  <div class="grid-2">
+    <div class="form-group">
+      <label class="form-label">Unidades actuales</label>
+      {{ form.stock_actual }}<p class="form-help">Tabletas, frascos, ampollas disponibles</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Alerta cuando queden...</label>
+      {{ form.stock_minimo_alerta }}<p class="form-help">Ej: 7 para alertar con una semana de anticipación</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Vencimiento del medicamento</label>
+      {{ form.fecha_vencimiento_medicamento }}
+    </div>
+    <div class="form-group">
+      <label class="form-label">Estado</label>
+      {{ form.estado }}
+    </div>
+  </div>
+</div>
+
+<div class="card mb-2">
+  <div class="form-group" style="margin-bottom:0;">
+    <label class="form-label">Notas adicionales</label>
+    {{ form.notas }}
+  </div>
+</div>
+
+<div class="flex gap-2 justify-end">
+  <a href="/medicamentos/" class="btn btn-outline">Cancelar</a>
+  <button type="submit" class="btn btn-primary btn-lg">💾 Guardar medicamento</button>
+</div>
+</form>
+</div>
+
+{% block extra_js %}
+<script>
+const selectFreq = document.getElementById('id_frecuencia_tipo');
+const bloques = {
+  'cada_horas': document.getElementById('bloque_horas'),
+  'veces_dia': document.getElementById('bloque_veces'),
+  'dias_esp': document.getElementById('bloque_dias'),
+};
+
+function actualizarBloques() {
+  const val = selectFreq.value;
+  Object.keys(bloques).forEach(k => {
+    if (bloques[k]) bloques[k].style.display = (k === val) ? 'block' : 'none';
+  });
+}
+
+selectFreq?.addEventListener('change', actualizarBloques);
+actualizarBloques();
+</script>
+{% endblock %}
+{% endblock %}

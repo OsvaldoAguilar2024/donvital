@@ -1,0 +1,41 @@
+{% extends 'base/base.html' %}
+{% block title %}Notificaciones - Don Vital{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">🔔 Notificaciones</h1>
+    <p class="page-subtitle">{{ notificaciones.count }} notificación{{ notificaciones.count|pluralize }}</p>
+  </div>
+  {% if notificaciones %}
+  <a href="/notificaciones/leer-todas/" class="btn btn-outline btn-sm">✅ Marcar todas como leídas</a>
+  {% endif %}
+</div>
+<div class="card" style="padding:0;overflow:hidden;">
+  {% if notificaciones %}
+    {% for notif in notificaciones %}
+    <div class="notif-item {% if not notif.leida %}no-leida{% endif %}" style="padding:1.25rem 1.5rem;">
+      <div class="notif-dot" style="{% if notif.leida %}opacity:0{% endif %}"></div>
+      <div style="flex:1;">
+        <div class="flex items-center justify-between">
+          <div style="font-weight:{% if not notif.leida %}700{% else %}600{% endif %};">{{ notif.titulo }}</div>
+          <div class="text-sm text-muted" style="white-space:nowrap;margin-left:1rem;">{{ notif.creado_at|timesince }} atrás</div>
+        </div>
+        <div class="text-muted mt-1">{{ notif.mensaje }}</div>
+        {% if notif.url_accion %}
+        <a href="{{ notif.url_accion }}" class="btn btn-ghost btn-sm mt-1" style="padding-left:0;color:var(--color-primary);">Ver cita →</a>
+        {% endif %}
+      </div>
+      {% if not notif.leida %}
+      <button class="btn btn-ghost btn-sm" data-marcar-leida="{{ notif.id }}" title="Marcar como leída">✓</button>
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="empty-state" style="padding:3rem;">
+    <div class="empty-state-icon">🔔</div>
+    <h3 class="empty-state-title">Sin notificaciones</h3>
+    <p class="empty-state-text">Las alertas de citas aparecerán aquí</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+[
+  {"model": "citas.especialidad", "pk": 1,  "fields": {"nombre": "Medicina General",  "icono": "🩺", "activa": true}},
+  {"model": "citas.especialidad", "pk": 2,  "fields": {"nombre": "Cardiología",        "icono": "❤️", "activa": true}},
+  {"model": "citas.especialidad", "pk": 3,  "fields": {"nombre": "Neurología",         "icono": "🧠", "activa": true}},
+  {"model": "citas.especialidad", "pk": 4,  "fields": {"nombre": "Ortopedia",          "icono": "🦴", "activa": true}},
+  {"model": "citas.especialidad", "pk": 5,  "fields": {"nombre": "Oftalmología",       "icono": "👁️", "activa": true}},
+  {"model": "citas.especialidad", "pk": 6,  "fields": {"nombre": "Endocrinología",     "icono": "🔬", "activa": true}},
+  {"model": "citas.especialidad", "pk": 7,  "fields": {"nombre": "Fisioterapia",       "icono": "🏃", "activa": true}},
+  {"model": "citas.especialidad", "pk": 8,  "fields": {"nombre": "Odontología",        "icono": "🦷", "activa": true}},
+  {"model": "citas.especialidad", "pk": 9,  "fields": {"nombre": "Psiquiatría",        "icono": "🧘", "activa": true}},
+  {"model": "citas.especialidad", "pk": 10, "fields": {"nombre": "Urología",           "icono": "💊", "activa": true}},
+  {"model": "suscripciones.plan", "pk": 1,  "fields": {"nombre": "Plan Familiar Base", "precio_usd": "3.99", "precio_cop": 16900, "max_pacientes": 2, "max_cuidadores": 1, "descripcion": "2 pacientes + 1 cuidador principal", "activo": true}},
+  {"model": "suscripciones.plan", "pk": 2,  "fields": {"nombre": "Plan Clínica/IPS",   "precio_usd": "79.00", "precio_cop": 334000, "max_pacientes": 50, "max_cuidadores": 10, "descripcion": "Hasta 50 pacientes + panel médico", "activo": true}}
+]
