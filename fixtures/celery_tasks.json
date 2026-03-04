@@ -1,0 +1,45 @@
+[
+  {
+    "model": "django_celery_beat.intervalschedule",
+    "pk": 1,
+    "fields": {"every": 1, "period": "days"}
+  },
+  {
+    "model": "django_celery_beat.intervalschedule", 
+    "pk": 2,
+    "fields": {"every": 1, "period": "hours"}
+  },
+  {
+    "model": "django_celery_beat.periodictask",
+    "pk": 1,
+    "fields": {
+      "name": "Generar registros de toma diarios",
+      "task": "apps.medicamentos.tasks.generar_registros_toma_diarios",
+      "interval": 1, "enabled": true,
+      "start_time": null, "last_run_at": null,
+      "one_off": false, "args": "[]", "kwargs": "{}"
+    }
+  },
+  {
+    "model": "django_celery_beat.periodictask",
+    "pk": 2,
+    "fields": {
+      "name": "Verificar stock y recetas",
+      "task": "apps.medicamentos.tasks.verificar_stock_y_recetas",
+      "interval": 1, "enabled": true,
+      "start_time": null, "last_run_at": null,
+      "one_off": false, "args": "[]", "kwargs": "{}"
+    }
+  },
+  {
+    "model": "django_celery_beat.periodictask",
+    "pk": 3,
+    "fields": {
+      "name": "Verificar recordatorios citas",
+      "task": "apps.citas.tasks.verificar_recordatorios",
+      "interval": 2, "enabled": true,
+      "start_time": null, "last_run_at": null,
+      "one_off": false, "args": "[]", "kwargs": "{}"
+    }
+  }
+]
