@@ -1,30 +1,117 @@
-{% extends 'base/base.html' %}
-{% block title %}Iniciar sesión - Don Vital{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Iniciar Sesión - Don Vital{% endblock %}
+
 {% block content %}
-<div class="auth-wrapper">
-  <div class="auth-card animate-in">
-    <div class="auth-logo">
-      <div class="auth-logo-icon">💊</div>
-      <h1 class="auth-title">Don Vital</h1>
-      <p class="auth-subtitle">Ingresa tu número de teléfono para continuar</p>
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+  <div class="max-w-md w-full">
+    
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-blue-700">Don Vital</h1>
+      <p class="text-gray-500 mt-2">Cuidado médico para tu familia</p>
     </div>
-    <form method="post" action="">
-      {% csrf_token %}
-      <div class="form-group">
-        <label class="form-label" for="id_telefono">📱 Teléfono</label>
-        {{ form.telefono }}
-        {% if form.telefono.errors %}
-          <p class="form-error">❌ {{ form.telefono.errors.0 }}</p>
-        {% endif %}
-        <p class="form-help">Ejemplo: +57 300 000 0000</p>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="mb-4 p-4 rounded-lg {% if message.tags == 'error' %}bg-red-100 text-red-700{% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-800{% else %}bg-green-100 text-green-700{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="bg-white rounded-2xl shadow-lg p-8">
+      <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">Iniciar Sesión</h2>
+
+      <!-- Tabs -->
+      <div class="flex rounded-lg bg-gray-100 p-1 mb-6">
+        <button onclick="mostrarTab('password')" id="tab-password"
+          class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all tab-btn active-tab">
+          🔑 Contraseña
+        </button>
+        <button onclick="mostrarTab('otp')" id="tab-otp"
+          class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all tab-btn">
+          📱 Código SMS
+        </button>
       </div>
-      <button type="submit" class="btn btn-primary btn-block btn-lg">
-        Recibir código →
-      </button>
-    </form>
-    <p class="text-center mt-2" style="font-size:0.875rem;color:var(--color-text-muted);">
-      ¿Primera vez? <a href="/usuarios/registro/" style="color:var(--color-primary);font-weight:600;">Regístrate aquí</a>
-    </p>
+
+      <!-- Login con Contraseña -->
+      <div id="form-password">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="metodo" value="password">
+          
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Número de celular</label>
+            <input type="tel" name="telefono" value="{{ telefono|default:'' }}"
+              placeholder="+573001234567"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required>
+          </div>
+
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
+            <input type="password" name="password"
+              placeholder="Tu contraseña"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required>
+          </div>
+
+          <button type="submit"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg text-lg transition-colors">
+            Entrar
+          </button>
+        </form>
+      </div>
+
+      <!-- Login con OTP -->
+      <div id="form-otp" class="hidden">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="metodo" value="otp">
+
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Número de celular</label>
+            <input type="tel" name="telefono"
+              placeholder="+573001234567"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required>
+            <p class="text-sm text-gray-500 mt-1">Te enviaremos un código por SMS</p>
+          </div>
+
+          <button type="submit"
+            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg text-lg transition-colors">
+            Enviar código SMS
+          </button>
+        </form>
+      </div>
+
+      <div class="mt-6 text-center">
+        <p class="text-gray-600">¿No tienes cuenta?
+          <a href="{% url 'registro' %}" class="text-blue-600 font-medium hover:underline">Regístrate aquí</a>
+        </p>
+      </div>
+    </div>
+
   </div>
 </div>
+
+<style>
+  .active-tab { background-color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); color: #1d4ed8; }
+  .tab-btn { color: #6b7280; }
+</style>
+
+<script>
+  function mostrarTab(tab) {
+    document.getElementById('form-password').classList.add('hidden');
+    document.getElementById('form-otp').classList.add('hidden');
+    document.getElementById('tab-password').classList.remove('active-tab');
+    document.getElementById('tab-otp').classList.remove('active-tab');
+    
+    document.getElementById('form-' + tab).classList.remove('hidden');
+    document.getElementById('tab-' + tab).classList.add('active-tab');
+  }
+
+  {% if mostrar_password %}
+  mostrarTab('password');
+  {% endif %}
+</script>
 {% endblock %}
