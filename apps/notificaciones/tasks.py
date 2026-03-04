@@ -4,6 +4,7 @@ DON VITAL - Tareas Celery para notificaciones asíncronas
 from celery import shared_task
 from django.utils import timezone
 from django.conf import settings
+from datetime import datetime, timedelta
 import logging
 
 logger = logging.getLogger(__name__)
@@ -87,11 +88,14 @@ def programar_recordatorios_cita(cita_id: int):
     """Programa todos los recordatorios para una cita nueva."""
     from apps.citas.models import Cita, Recordatorio
     from apps.pacientes.models import CuidadorPaciente
-    from datetime import timedelta
     
     try:
         cita = Cita.objects.select_related('paciente', 'especialidad').get(id=cita_id)
-        fecha_hora = cita.fecha_hora
+        
+        # Combinar fecha y hora en un datetime con timezone
+        fecha_hora = timezone.make_aware(
+            datetime.combine(cita.fecha, cita.hora)
+        )
         
         # Obtener todos los cuidadores del paciente
         relaciones = CuidadorPaciente.objects.filter(
@@ -100,14 +104,19 @@ def programar_recordatorios_cita(cita_id: int):
         
         cuidadores = [rel.usuario for rel in relaciones]
         
+        if not cuidadores:
+            logger.warning(f'Cita {cita_id} no tiene cuidadores asignados')
+            return {'status': 'sin_cuidadores'}
+        
         recordatorios_config = [
             ('72h', fecha_hora - timedelta(hours=72), ['push', 'sms']),
             ('24h', fecha_hora - timedelta(hours=24), ['push', 'sms']),
-            ('2h', fecha_hora - timedelta(hours=2), ['push', 'sms']),
+            ('2h',  fecha_hora - timedelta(hours=2),  ['push', 'sms']),
             ('post', fecha_hora + timedelta(hours=2), ['push']),
         ]
         
         ahora = timezone.now()
+        creados = 0
         
         for tipo, momento, canales in recordatorios_config:
             if momento <= ahora:
@@ -122,16 +131,16 @@ def programar_recordatorios_cita(cita_id: int):
                         recordatorio = Recordatorio.objects.create(
                             cita=cita, usuario=usuario,
                             tipo=tipo, canal=canal,
-                            programado_para=momento
                         )
                         # Programar la tarea Celery
                         enviar_recordatorio_cita.apply_async(
                             args=[recordatorio.id],
                             eta=momento
                         )
+                        creados += 1
         
-        logger.info(f'Recordatorios programados para cita {cita_id}')
-        return {'status': 'ok', 'cita': cita_id}
+        logger.info(f'Recordatorios programados para cita {cita_id}: {creados} creados')
+        return {'status': 'ok', 'cita': cita_id, 'recordatorios_creados': creados}
     
     except Exception as e:
         logger.error(f'Error programando recordatorios cita {cita_id}: {e}')
@@ -147,7 +156,6 @@ def verificar_citas_sin_confirmar():
     from apps.citas.models import Cita
     from .services import enviar_push, enviar_sms, crear_notificacion_interna
     from apps.pacientes.models import CuidadorPaciente
-    from datetime import timedelta
     
     ahora = timezone.now()
     limite = ahora + timedelta(hours=4)
@@ -158,7 +166,12 @@ def verificar_citas_sin_confirmar():
     ).select_related('paciente', 'especialidad')
     
     for cita in citas_sin_confirmar:
-        if ahora < cita.fecha_hora < limite:
+        # Combinar fecha y hora en datetime con timezone
+        cita_fecha_hora = timezone.make_aware(
+            datetime.combine(cita.fecha, cita.hora)
+        )
+        
+        if ahora < cita_fecha_hora < limite:
             cuidadores = CuidadorPaciente.objects.filter(
                 paciente=cita.paciente, activo=True
             ).select_related('usuario')
@@ -168,7 +181,7 @@ def verificar_citas_sin_confirmar():
                 titulo = f'⚠️ ATENCIÓN: Cita sin confirmar'
                 mensaje = (
                     f'{cita.paciente.nombre} tiene cita con {cita.especialidad} '
-                    f'en {cita.horas_restantes:.0f}h. ¡Aún no está confirmada!'
+                    f'en menos de 4h. ¡Aún no está confirmada!'
                 )
                 crear_notificacion_interna(usuario, titulo, mensaje, cita, 'alerta')
                 if usuario.notif_push:
