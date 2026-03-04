@@ -2,14 +2,7 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "gunicorn donvital.wsgi --bind 0.0.0.0:$PORT --workers 2"
 healthcheckPath = "/usuarios/login/"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
 
-[[services]]
-name = "web"
-
-[services.variables]
-DJANGO_SETTINGS_MODULE = "donvital.settings"
-PYTHONUNBUFFERED = "1"
