@@ -4,40 +4,38 @@ from .models import Usuario
 
 class RegistroForm(forms.ModelForm):
     password = forms.CharField(
-        label='Contraseña',
-        widget=forms.PasswordInput(attrs={
-            'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg text-lg',
-            'placeholder': 'Mínimo 6 caracteres'
-        }),
-        min_length=6,
-        required=True
+    label='Contraseña',
+    widget=forms.PasswordInput(attrs={
+        'class': 'form-control',
+        'placeholder': 'Mínimo 6 caracteres'
+    }),
+    min_length=6,
+    required=True
     )
     confirmar_password = forms.CharField(
-        label='Confirmar contraseña',
-        widget=forms.PasswordInput(attrs={
-            'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg text-lg',
-            'placeholder': 'Repite tu contraseña'
-        }),
-        required=True
+    label='Confirmar contraseña',
+    widget=forms.PasswordInput(attrs={
+        'class': 'form-control',
+        'placeholder': 'Repite tu contraseña'
+    }),
+    required=True
     )
-
     class Meta:
         model = Usuario
         fields = ['nombre', 'telefono', 'rol']
         widgets = {
             'nombre': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg text-lg',
+                'class': 'form-control',
                 'placeholder': 'Tu nombre completo'
             }),
             'telefono': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg text-lg',
+                'class': 'form-control',
                 'placeholder': '+573001234567'
             }),
             'rol': forms.Select(attrs={
-                'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg text-lg'
+                'class': 'form-control'
             }),
         }
-
     def clean(self):
         cleaned_data = super().clean()
         password = cleaned_data.get('password')
