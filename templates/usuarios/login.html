@@ -1,117 +1,86 @@
 {% extends 'base/base.html' %}
 {% block title %}Iniciar Sesión - Don Vital{% endblock %}
-
 {% block content %}
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-  <div class="max-w-md w-full">
-    
-    <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold text-blue-700">Don Vital</h1>
-      <p class="text-gray-500 mt-2">Cuidado médico para tu familia</p>
+<div class="auth-wrapper">
+  <div class="auth-card animate-in">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">💊</div>
+      <h1 class="auth-title">Iniciar Sesión</h1>
+      <p class="auth-subtitle">Cuidado médico para tu familia</p>
     </div>
 
     {% if messages %}
       {% for message in messages %}
-        <div class="mb-4 p-4 rounded-lg {% if message.tags == 'error' %}bg-red-100 text-red-700{% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-800{% else %}bg-green-100 text-green-700{% endif %}">
-          {{ message }}
-        </div>
+        <div class="alert alert-{{ message.tags }} mb-3">{{ message }}</div>
       {% endfor %}
     {% endif %}
 
-    <div class="bg-white rounded-2xl shadow-lg p-8">
-      <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">Iniciar Sesión</h2>
-
-      <!-- Tabs -->
-      <div class="flex rounded-lg bg-gray-100 p-1 mb-6">
-        <button onclick="mostrarTab('password')" id="tab-password"
-          class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all tab-btn active-tab">
-          🔑 Contraseña
-        </button>
-        <button onclick="mostrarTab('otp')" id="tab-otp"
-          class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all tab-btn">
-          📱 Código SMS
-        </button>
-      </div>
-
-      <!-- Login con Contraseña -->
-      <div id="form-password">
-        <form method="post">
-          {% csrf_token %}
-          <input type="hidden" name="metodo" value="password">
-          
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Número de celular</label>
-            <input type="tel" name="telefono" value="{{ telefono|default:'' }}"
-              placeholder="+573001234567"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required>
-          </div>
-
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
-            <input type="password" name="password"
-              placeholder="Tu contraseña"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required>
-          </div>
-
-          <button type="submit"
-            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg text-lg transition-colors">
-            Entrar
-          </button>
-        </form>
-      </div>
-
-      <!-- Login con OTP -->
-      <div id="form-otp" class="hidden">
-        <form method="post">
-          {% csrf_token %}
-          <input type="hidden" name="metodo" value="otp">
-
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Número de celular</label>
-            <input type="tel" name="telefono"
-              placeholder="+573001234567"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required>
-            <p class="text-sm text-gray-500 mt-1">Te enviaremos un código por SMS</p>
-          </div>
-
-          <button type="submit"
-            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg text-lg transition-colors">
-            Enviar código SMS
-          </button>
-        </form>
-      </div>
-
-      <div class="mt-6 text-center">
-        <p class="text-gray-600">¿No tienes cuenta?
-          <a href="{% url 'registro' %}" class="text-blue-600 font-medium hover:underline">Regístrate aquí</a>
-        </p>
-      </div>
+    <!-- Tabs -->
+    <div style="display:flex;border-radius:8px;background:#f1f5f9;padding:4px;margin-bottom:1.5rem;">
+      <button onclick="mostrarTab('password')" id="tab-password"
+        style="flex:1;padding:10px;border:none;border-radius:6px;font-weight:600;cursor:pointer;transition:all 0.2s;background:white;color:var(--color-primary);box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        🔑 Contraseña
+      </button>
+      <button onclick="mostrarTab('otp')" id="tab-otp"
+        style="flex:1;padding:10px;border:none;border-radius:6px;font-weight:600;cursor:pointer;transition:all 0.2s;background:transparent;color:#6b7280;">
+        📱 Código SMS
+      </button>
     </div>
 
+    <!-- Login con Contraseña -->
+    <div id="form-password">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="metodo" value="password">
+        <div class="form-group">
+          <label class="form-label">Número de celular</label>
+          <input type="tel" name="telefono" value="{{ telefono|default:'' }}"
+            placeholder="+573001234567" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contraseña</label>
+          <input type="password" name="password"
+            placeholder="Tu contraseña" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">
+          Entrar →
+        </button>
+      </form>
+    </div>
+
+    <!-- Login con OTP -->
+    <div id="form-otp" style="display:none;">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="metodo" value="otp">
+        <div class="form-group">
+          <label class="form-label">Número de celular</label>
+          <input type="tel" name="telefono"
+            placeholder="+573001234567" class="form-control" required>
+          <p style="font-size:0.8rem;color:#6b7280;margin-top:4px;">Te enviaremos un código por SMS</p>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">
+          Enviar código SMS →
+        </button>
+      </form>
+    </div>
+
+    <p class="text-center mt-2" style="font-size:0.875rem;">
+      ¿No tienes cuenta? <a href="/usuarios/registro/" style="color:var(--color-primary);font-weight:600;">Regístrate aquí</a>
+    </p>
   </div>
 </div>
 
-<style>
-  .active-tab { background-color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); color: #1d4ed8; }
-  .tab-btn { color: #6b7280; }
-</style>
-
 <script>
   function mostrarTab(tab) {
-    document.getElementById('form-password').classList.add('hidden');
-    document.getElementById('form-otp').classList.add('hidden');
-    document.getElementById('tab-password').classList.remove('active-tab');
-    document.getElementById('tab-otp').classList.remove('active-tab');
-    
-    document.getElementById('form-' + tab).classList.remove('hidden');
-    document.getElementById('tab-' + tab).classList.add('active-tab');
+    document.getElementById('form-password').style.display = tab === 'password' ? 'block' : 'none';
+    document.getElementById('form-otp').style.display = tab === 'otp' ? 'block' : 'none';
+    document.getElementById('tab-password').style.background = tab === 'password' ? 'white' : 'transparent';
+    document.getElementById('tab-password').style.color = tab === 'password' ? 'var(--color-primary)' : '#6b7280';
+    document.getElementById('tab-password').style.boxShadow = tab === 'password' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none';
+    document.getElementById('tab-otp').style.background = tab === 'otp' ? 'white' : 'transparent';
+    document.getElementById('tab-otp').style.color = tab === 'otp' ? 'var(--color-primary)' : '#6b7280';
+    document.getElementById('tab-otp').style.boxShadow = tab === 'otp' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none';
   }
-
-  {% if mostrar_password %}
-  mostrarTab('password');
-  {% endif %}
 </script>
 {% endblock %}
