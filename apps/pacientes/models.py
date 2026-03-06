@@ -4,6 +4,7 @@ from apps.usuarios.models import Usuario
 
 class Paciente(models.Model):
     nombre = models.CharField(max_length=150, verbose_name='Nombre completo')
+    cedula = models.CharField(max_length=20, blank=True, verbose_name='Cédula de ciudadanía')
     fecha_nacimiento = models.DateField(null=True, blank=True, verbose_name='Fecha de nacimiento')
     telefono = models.CharField(max_length=20, blank=True)
     eps = models.CharField(max_length=100, blank=True, verbose_name='EPS')

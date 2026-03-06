@@ -64,7 +64,7 @@
       text-align: left;
     }
 
-    input[type="tel"] {
+    input[type="text"] {
       width: 100%;
       padding: 1.25rem 1.5rem;
       font-size: 1.5rem;
@@ -79,11 +79,11 @@
       outline: none;
     }
 
-    input[type="tel"]:focus {
+    input[type="text"]:focus {
       border-color: #4a9fd4;
     }
 
-    input[type="tel"]::placeholder {
+    input[type="text"]::placeholder {
       color: #3a5a7a;
       letter-spacing: 0.05em;
     }
@@ -145,13 +145,13 @@
 
       <form method="post">
         {% csrf_token %}
-        <label for="telefono">Ingresa tu número de celular</label>
+        <label for="telefono">Ingresa tu número de cédula</label>
         <input
-          type="tel"
-          id="telefono"
-          name="telefono"
-          placeholder="3001234567"
-          autocomplete="tel"
+          type="text"
+          id="cedula"
+          name="cedula"
+          placeholder="12345678"
+          autocomplete="off"
           inputmode="numeric"
           autofocus
           required

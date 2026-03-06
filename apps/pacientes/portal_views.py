@@ -1,45 +1,25 @@
-"""DON VITAL - Portal del Paciente (acceso público por teléfono)"""
+"""DON VITAL - Portal del Paciente (acceso público por cédula)"""
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
-from django.contrib import messages
-
-
-def normalizar_telefono(telefono: str) -> list:
-    """Retorna variantes del teléfono para buscar en DB."""
-    tel = telefono.strip().replace(' ', '').replace('-', '')
-    variantes = [tel]
-    if tel.startswith('+57'):
-        variantes.append(tel[3:])
-    elif tel.startswith('57') and len(tel) == 12:
-        variantes.append(tel[2:])
-        variantes.append('+' + tel)
-    elif len(tel) == 10 and tel.startswith('3'):
-        variantes.append('+57' + tel)
-        variantes.append('57' + tel)
-    return variantes
 
 
 @csrf_protect
 def portal_login(request):
-    """Página de acceso del paciente — solo pide teléfono."""
+    """Página de acceso del paciente — solo pide cédula."""
     if request.method == 'POST':
-        telefono = request.POST.get('telefono', '').strip()
-        if not telefono:
-            return render(request, 'paciente/login.html', {'error': 'Ingresa tu número de celular.'})
+        cedula = request.POST.get('cedula', '').strip().replace(' ', '').replace('.', '')
+        if not cedula:
+            return render(request, 'paciente/login.html', {'error': 'Ingresa tu número de cédula.'})
 
         from apps.pacientes.models import Paciente
-        variantes = normalizar_telefono(telefono)
-        paciente = Paciente.objects.filter(
-            telefono__in=variantes, activo=True
-        ).first()
+        paciente = Paciente.objects.filter(cedula=cedula, activo=True).first()
 
         if not paciente:
             return render(request, 'paciente/login.html', {
-                'error': 'No encontramos ese número. Pídele a tu cuidador que lo registre.'
+                'error': 'No encontramos esa cédula. Pídele a tu cuidador que la registre.'
             })
 
-        # Guardar en sesión (sin usuario Django)
         request.session['paciente_id'] = paciente.id
         request.session['paciente_nombre'] = paciente.nombre
         return redirect('portal_paciente')
@@ -97,7 +77,6 @@ def portal_emergencia(request):
     latitud = request.POST.get('latitud', '')
     longitud = request.POST.get('longitud', '')
 
-    # Construir mensaje
     if latitud and longitud:
         maps_url = f'https://maps.google.com/?q={latitud},{longitud}'
         mensaje_sms = (
@@ -110,14 +89,12 @@ def portal_emergencia(request):
             f'No se pudo obtener ubicación. Comunícate de inmediato.'
         )
 
-    # Notificar a todos los cuidadores
     cuidadores = CuidadorPaciente.objects.filter(
         paciente=paciente, activo=True
     ).select_related('usuario')
 
     for rel in cuidadores:
         usuario = rel.usuario
-        # Notificación interna
         crear_notificacion_interna(
             usuario=usuario,
             titulo=f'🚨 EMERGENCIA: {paciente.nombre}',
@@ -125,7 +102,6 @@ def portal_emergencia(request):
             tipo='alerta',
             url='/dashboard/',
         )
-        # SMS
         if usuario.telefono:
             try:
                 enviar_sms(usuario.telefono, mensaje_sms)

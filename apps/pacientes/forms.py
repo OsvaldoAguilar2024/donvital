@@ -6,13 +6,14 @@ class PacienteForm(forms.ModelForm):
     class Meta:
         model = Paciente
         fields = [
-            'nombre', 'fecha_nacimiento', 'telefono', 'eps', 'numero_afiliacion',
+            'nombre', 'cedula', 'fecha_nacimiento', 'telefono', 'eps', 'numero_afiliacion',
             'grupo_sanguineo', 'alergias', 'medicamentos_actuales',
             'condiciones', 'contacto_emergencia', 'telefono_emergencia',
             'foto', 'foto_carnet_eps', 'notas'
         ]
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Nombre completo'}),
+            'cedula': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Ej: 12345678', 'inputmode': 'numeric'}),
             'fecha_nacimiento': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
             'telefono': forms.TextInput(attrs={'class': 'form-input', 'inputmode': 'tel'}),
             'eps': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Ej: Sura, Compensar'}),
