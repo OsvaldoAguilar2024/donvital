@@ -10,12 +10,12 @@ logger = logging.getLogger(__name__)
 def enviar_sms_otp(telefono: str, codigo: str) -> bool:
     """Envía OTP por SMS via Twilio. En DEBUG muestra en consola."""
     mensaje = f'Don Vital: Tu código de acceso es {codigo}. Válido por 10 minutos. No lo compartas.'
-    
+
     if settings.DEBUG and not settings.TWILIO_ACCOUNT_SID:
         logger.info(f'[DEBUG SMS] Para {telefono}: {mensaje}')
         print(f'\n🔐 CÓDIGO OTP para {telefono}: {codigo}\n')
         return True
-    
+
     try:
         from twilio.rest import Client
         client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
@@ -37,7 +37,7 @@ def enviar_sms(telefono: str, mensaje: str) -> bool:
         logger.info(f'[DEBUG SMS] Para {telefono}: {mensaje}')
         print(f'\n📱 SMS para {telefono}: {mensaje}\n')
         return True
-    
+
     try:
         from twilio.rest import Client
         client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
@@ -57,15 +57,15 @@ def enviar_push(usuario, titulo: str, cuerpo: str, url: str = '/dashboard/') -> 
     if not usuario.fcm_token or not settings.FIREBASE_CREDENTIALS_PATH:
         logger.info(f'[DEBUG PUSH] Para {usuario.nombre}: {titulo} - {cuerpo}')
         return True
-    
+
     try:
         import firebase_admin
         from firebase_admin import credentials, messaging
-        
+
         if not firebase_admin._apps:
             cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
             firebase_admin.initialize_app(cred)
-        
+
         message = messaging.Message(
             notification=messaging.Notification(title=titulo, body=cuerpo),
             data={'url': url},
@@ -78,12 +78,11 @@ def enviar_push(usuario, titulo: str, cuerpo: str, url: str = '/dashboard/') -> 
         return False
 
 
-def crear_notificacion_interna(usuario, titulo, mensaje, cita=None, tipo='recordatorio', url=''):
+def crear_notificacion_interna(usuario, titulo, mensaje, tipo='recordatorio', url=''):
     """Crea notificación interna en base de datos."""
     from apps.notificaciones.models import Notificacion
     return Notificacion.objects.create(
         usuario=usuario,
-        cita=cita,
         tipo=tipo,
         titulo=titulo,
         mensaje=mensaje,
