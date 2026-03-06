@@ -66,6 +66,23 @@ class Cita(models.Model):
     def es_hoy(self):
         return self.fecha == timezone.now().date()
 
+    def confirmar(self, usuario=None):
+        """Confirma la cita si está en estado programada o confirmada."""
+        if self.estado in (self.ESTADO_PROGRAMADA, self.ESTADO_CONFIRMADA):
+            self.estado = self.ESTADO_CONFIRMADA
+            self.save(update_fields=['estado', 'actualizado_at'])
+
+    def cancelar(self, usuario=None):
+        """Cancela la cita si no está ya completada o cancelada."""
+        if self.estado not in (self.ESTADO_CANCELADA, self.ESTADO_COMPLETADA):
+            self.estado = self.ESTADO_CANCELADA
+            self.save(update_fields=['estado', 'actualizado_at'])
+
+    def completar(self, usuario=None):
+        """Marca la cita como completada."""
+        self.estado = self.ESTADO_COMPLETADA
+        self.save(update_fields=['estado', 'actualizado_at'])
+
 
 class Recordatorio(models.Model):
     TIPO_72H = '72h'
