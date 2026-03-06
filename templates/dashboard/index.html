@@ -27,6 +27,13 @@
       <div class="stat-label">Próximas citas</div>
     </div>
   </div>
+  <div class="stat-card">
+    <div class="stat-icon purple">💊</div>
+    <div class="stat-info">
+      <div class="stat-number">{{ tomas_hoy.count }}</div>
+      <div class="stat-label">Tomas hoy</div>
+    </div>
+  </div>
   {% if pacientes %}
   <div class="stat-card">
     <div class="stat-icon orange">👴</div>
@@ -117,6 +124,43 @@
     {% endif %}
   </div>
 
+</div>
+
+<!-- Tomas del día -->
+<div class="card mt-3">
+  <div class="card-header">
+    <h2 class="card-title">💊 Medicamentos de hoy</h2>
+    <a href="/medicamentos/" class="btn btn-ghost btn-sm">Ver todos</a>
+  </div>
+  {% if tomas_hoy %}
+    {% for toma in tomas_hoy %}
+    <div class="cita-card" style="text-decoration:none;color:inherit;">
+      <div class="cita-fecha" style="background:{% if toma.estado == 'tomado' %}#22c55e{% elif toma.estado == 'omitido' %}#ef4444{% elif toma.estado == 'retrasado' %}#f59e0b{% else %}#6366f1{% endif %};">
+        <span class="dia">{{ toma.hora_programada|time:"H:i" }}</span>
+        <span class="mes">hoy</span>
+      </div>
+      <div class="cita-info">
+        <div class="cita-especialidad">{{ toma.medicamento.nombre }}</div>
+        <div class="cita-paciente">👴 {{ toma.medicamento.paciente.nombre }}</div>
+        <div class="cita-hora-lugar">💊 {{ toma.medicamento.dosis }}</div>
+      </div>
+      <div class="cita-actions">
+        <span class="badge badge-{{ toma.estado }}">{{ toma.get_estado_display }}</span>
+        {% if toma.estado == 'pendiente' or toma.estado == 'retrasado' %}
+        <a href="/medicamentos/toma/{{ toma.id }}/confirmar/" class="btn btn-secondary btn-sm">
+          ✅ Tomar
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state" style="padding:2rem 1rem;">
+      <div class="empty-state-icon">💊</div>
+      <p class="empty-state-title" style="font-size:1rem;">Sin tomas programadas hoy</p>
+      <p class="text-muted text-sm">No hay medicamentos activos con tomas para hoy</p>
+    </div>
+  {% endif %}
 </div>
 
 <!-- Notificaciones recientes -->

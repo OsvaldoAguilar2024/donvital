@@ -40,18 +40,26 @@ def dashboard(request):
         ).select_related('paciente', 'especialidad').order_by('fecha', 'hora')[:10]
     
     from apps.notificaciones.models import Notificacion
+    from apps.medicamentos.models import RegistroToma
     notifs_recientes = Notificacion.objects.filter(
         usuario=usuario, leida=False
     ).order_by('-creado_at')[:5]
-    
+
+    ids_pacientes_tomas = list(pacientes.values_list('id', flat=True)) if pacientes else []
+    tomas_hoy = RegistroToma.objects.filter(
+        fecha_programada=timezone.now().date(),
+        medicamento__paciente_id__in=ids_pacientes_tomas,
+        medicamento__estado='activo',
+    ).select_related('medicamento__paciente').order_by('hora_programada')
+
     return render(request, 'dashboard/index.html', {
         'citas_hoy': citas_hoy,
         'citas_proximas': citas_proximas,
         'pacientes': pacientes,
         'notifs_recientes': notifs_recientes,
+        'tomas_hoy': tomas_hoy,
         'hoy': timezone.now(),
     })
-
 
 @login_required
 def lista_citas(request):
