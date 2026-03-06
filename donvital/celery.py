@@ -25,4 +25,8 @@ app.conf.beat_schedule = {
         'task': 'apps.medicamentos.tasks.verificar_stock_y_recetas',
         'schedule': crontab(hour=8, minute=0),
     },
+    'verificar-y-enviar-tomas': {
+    'task': 'apps.medicamentos.tasks.verificar_y_enviar_tomas',
+    'schedule': crontab(minute=0),
+    },
 }

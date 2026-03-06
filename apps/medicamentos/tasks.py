@@ -237,6 +237,37 @@ def verificar_stock_y_recetas():
 
 
 @shared_task
+def verificar_y_enviar_tomas():
+    """
+    Corre cada hora. Busca tomas pendientes en ventana de ±35 minutos
+    y dispara el recordatorio. Mismo patrón que citas.
+    """
+    from .models import Medicamento, RegistroToma
+    from datetime import datetime, timedelta
+
+    ahora = timezone.now()
+    hoy = ahora.date()
+    ventana_inicio = (ahora - timedelta(minutes=35)).time()
+    ventana_fin = (ahora + timedelta(minutes=35)).time()
+
+    tomas = RegistroToma.objects.filter(
+        fecha_programada=hoy,
+        estado=RegistroToma.ESTADO_PENDIENTE,
+        medicamento__estado=Medicamento.ESTADO_ACTIVO,
+        hora_programada__gte=ventana_inicio,
+        hora_programada__lte=ventana_fin,
+    )
+
+    enviados = 0
+    for toma in tomas:
+        enviar_recordatorio_medicamento(toma.id)
+        enviados += 1
+
+    logger.info(f'Tomas enviadas: {enviados}')
+    return {'enviados': enviados}
+
+
+@shared_task
 def programar_recordatorios_medicamentos_hoy():
     """
     Programa las tareas Celery de recordatorio para cada toma del día.
