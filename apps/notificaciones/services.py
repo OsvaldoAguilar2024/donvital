@@ -7,8 +7,23 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
+def normalizar_telefono(telefono: str) -> str:
+    """Asegura formato E.164 para Colombia."""
+    telefono = telefono.strip().replace(' ', '').replace('-', '')
+    if telefono.startswith('00'):
+        telefono = '+' + telefono[2:]
+    elif telefono.startswith('57') and len(telefono) == 12:
+        telefono = '+' + telefono
+    elif telefono.startswith('3') and len(telefono) == 10:
+        telefono = '+57' + telefono
+    elif not telefono.startswith('+'):
+        telefono = '+57' + telefono
+    return telefono
+
+
 def enviar_sms_otp(telefono: str, codigo: str) -> bool:
     """Envía OTP por SMS via Twilio. En DEBUG muestra en consola."""
+    telefono = normalizar_telefono(telefono)
     mensaje = f'Don Vital: Tu código de acceso es {codigo}. Válido por 10 minutos. No lo compartas.'
 
     if settings.DEBUG and not settings.TWILIO_ACCOUNT_SID:
@@ -33,6 +48,7 @@ def enviar_sms_otp(telefono: str, codigo: str) -> bool:
 
 def enviar_sms(telefono: str, mensaje: str) -> bool:
     """Envía SMS genérico."""
+    telefono = normalizar_telefono(telefono)
     if settings.DEBUG and not settings.TWILIO_ACCOUNT_SID:
         logger.info(f'[DEBUG SMS] Para {telefono}: {mensaje}')
         print(f'\n📱 SMS para {telefono}: {mensaje}\n')
