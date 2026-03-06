@@ -15,7 +15,7 @@ def generar_registros_toma_diarios():
     para todos los medicamentos activos.
     """
     from .models import Medicamento, RegistroToma
-    from datetime import time, timedelta
+    from datetime import time
 
     hoy = timezone.now().date()
     dia_semana = hoy.weekday()  # 0=Lunes, 6=Domingo
@@ -26,7 +26,6 @@ def generar_registros_toma_diarios():
     ).select_related('paciente')
 
     for med in medicamentos:
-        # Verificar si el medicamento ya empezó y no ha terminado
         if med.fecha_inicio > hoy:
             continue
         if med.fecha_fin and med.fecha_fin < hoy:
@@ -40,15 +39,12 @@ def generar_registros_toma_diarios():
             horarios = med.horarios_fijos or []
 
         elif med.frecuencia_tipo == Medicamento.FREQ_CADA_HORAS and med.intervalo_horas:
-            # Generar horarios a lo largo del día
-            hora_actual = time(0, 0)
             inicio_dt = timezone.make_aware(
                 timezone.datetime.combine(med.fecha_inicio, time(8, 0))
             )
             ahora = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
             horas_desde_inicio = int((ahora - inicio_dt).total_seconds() // 3600)
             offset = horas_desde_inicio % med.intervalo_horas
-
             h = (8 + (med.intervalo_horas - offset) % med.intervalo_horas) % 24
             while h < 24:
                 horarios.append(f'{h:02d}:00')
@@ -60,7 +56,7 @@ def generar_registros_toma_diarios():
             horarios = med.horarios_fijos or ['08:00']
 
         elif med.frecuencia_tipo == Medicamento.FREQ_SEGUN_NECESIDAD:
-            continue  # No genera registros automáticos
+            continue
 
         for horario_str in horarios:
             try:
@@ -74,7 +70,7 @@ def generar_registros_toma_diarios():
                 )
                 if created:
                     creados += 1
-            except (ValueError, Exception) as e:
+            except Exception as e:
                 logger.error(f'Error creando registro toma para {med}: {e}')
 
     logger.info(f'Registros de toma generados: {creados} para {hoy}')
@@ -83,7 +79,7 @@ def generar_registros_toma_diarios():
 
 @shared_task
 def enviar_recordatorio_medicamento(registro_toma_id: int):
-    """Envía recordatorio de toma de medicamento."""
+    """Envía recordatorio de toma de medicamento por push y SMS."""
     from .models import RegistroToma
     from apps.pacientes.models import CuidadorPaciente
     from apps.notificaciones.services import enviar_push, enviar_sms, crear_notificacion_interna
@@ -108,23 +104,39 @@ def enviar_recordatorio_medicamento(registro_toma_id: int):
         if med.instrucciones:
             mensaje += f' Recordar: {med.instrucciones[:80]}'
 
+        # Mensaje SMS más corto
+        mensaje_sms = (
+            f'Don Vital: {paciente.nombre} debe tomar {med.dosis} de {med.nombre} '
+            f'a las {hora_str}.'
+        )
+
         url = f'/medicamentos/toma/{registro.id}/confirmar/'
 
-        # Notificar a todos los cuidadores
         cuidadores = CuidadorPaciente.objects.filter(
             paciente=paciente, activo=True
         ).select_related('usuario')
 
         for rel in cuidadores:
             usuario = rel.usuario
+
+            # Notificación interna siempre
             crear_notificacion_interna(
                 usuario=usuario, titulo=titulo,
                 mensaje=mensaje, tipo='recordatorio', url=url
             )
+
+            # Push si tiene habilitado
             if usuario.notif_push:
                 enviar_push(usuario, titulo, mensaje, url)
 
-        # Marcar como retrasado si ya pasó más de 30 min
+            # SMS si tiene habilitado y tiene teléfono
+            if usuario.notif_sms and usuario.telefono:
+                try:
+                    enviar_sms(usuario.telefono, mensaje_sms)
+                except Exception as e:
+                    logger.error(f'Error SMS medicamento a {usuario.telefono}: {e}')
+
+        # Marcar como retrasado — ya se notificó
         registro.estado = RegistroToma.ESTADO_RETRASADO
         registro.save(update_fields=['estado'])
 
@@ -144,7 +156,7 @@ def verificar_stock_y_recetas():
     """
     from .models import Medicamento
     from apps.pacientes.models import CuidadorPaciente
-    from apps.notificaciones.services import crear_notificacion_interna, enviar_push
+    from apps.notificaciones.services import crear_notificacion_interna, enviar_sms
 
     hoy = timezone.now().date()
     medicamentos = Medicamento.objects.filter(
@@ -168,13 +180,26 @@ def verificar_stock_y_recetas():
                     rel.usuario, titulo, mensaje, tipo='alerta',
                     url=f'/medicamentos/{med.id}/'
                 )
+                if rel.usuario.notif_sms and rel.usuario.telefono:
+                    try:
+                        enviar_sms(rel.usuario.telefono, f'Don Vital: {mensaje}')
+                    except Exception as e:
+                        logger.error(f'Error SMS stock bajo: {e}')
 
         # Alerta medicamento vencido
         if med.medicamento_vencido:
             titulo = f'❌ Medicamento vencido: {med.nombre}'
-            mensaje = f'{med.nombre} de {med.paciente.nombre} venció el {med.fecha_vencimiento_medicamento}. No administrar.'
+            mensaje = (
+                f'{med.nombre} de {med.paciente.nombre} venció el '
+                f'{med.fecha_vencimiento_medicamento}. No administrar.'
+            )
             for rel in cuidadores:
                 crear_notificacion_interna(rel.usuario, titulo, mensaje, tipo='alerta')
+                if rel.usuario.notif_sms and rel.usuario.telefono:
+                    try:
+                        enviar_sms(rel.usuario.telefono, f'Don Vital: {mensaje}')
+                    except Exception as e:
+                        logger.error(f'Error SMS medicamento vencido: {e}')
 
         # Alerta receta por vencer
         if med.requiere_renovacion_receta and med.receta_vence_pronto:
@@ -187,13 +212,26 @@ def verificar_stock_y_recetas():
             )
             for rel in cuidadores:
                 crear_notificacion_interna(rel.usuario, titulo, mensaje, tipo='alerta')
+                if rel.usuario.notif_sms and rel.usuario.telefono:
+                    try:
+                        enviar_sms(rel.usuario.telefono, f'Don Vital: {mensaje}')
+                    except Exception as e:
+                        logger.error(f'Error SMS receta por vencer: {e}')
 
         # Alerta receta ya vencida
         if med.requiere_renovacion_receta and med.receta_vencida:
             titulo = f'❌ Receta vencida: {med.nombre}'
-            mensaje = f'La receta de {med.nombre} para {med.paciente.nombre} está vencida. Renovar urgente.'
+            mensaje = (
+                f'La receta de {med.nombre} para {med.paciente.nombre} '
+                f'está vencida. Renovar urgente.'
+            )
             for rel in cuidadores:
                 crear_notificacion_interna(rel.usuario, titulo, mensaje, tipo='alerta')
+                if rel.usuario.notif_sms and rel.usuario.telefono:
+                    try:
+                        enviar_sms(rel.usuario.telefono, f'Don Vital: {mensaje}')
+                    except Exception as e:
+                        logger.error(f'Error SMS receta vencida: {e}')
 
     return {'status': 'ok', 'fecha': str(hoy)}
 
@@ -204,7 +242,7 @@ def programar_recordatorios_medicamentos_hoy():
     Programa las tareas Celery de recordatorio para cada toma del día.
     Se ejecuta después de generar_registros_toma_diarios.
     """
-    from .models import RegistroToma
+    from .models import Medicamento, RegistroToma
     from datetime import datetime
 
     hoy = timezone.now().date()
@@ -226,4 +264,5 @@ def programar_recordatorios_medicamentos_hoy():
             )
             programados += 1
 
+    logger.info(f'Recordatorios medicamentos programados: {programados}')
     return {'programados': programados}
