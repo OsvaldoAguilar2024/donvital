@@ -12,4 +12,5 @@ urlpatterns = [
     path('medicamentos/', include('apps.medicamentos.urls')),
     path('notificaciones/', include('apps.notificaciones.urls')),
     path('suscripciones/', include('apps.suscripciones.urls')),
+    path('paciente/', include('apps.pacientes.portal_urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

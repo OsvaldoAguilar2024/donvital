@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1B4F72">
+  <title>Don Vital — {{ paciente.nombre }}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --azul: #1B4F72;
+      --azul-claro: #2471a3;
+      --fondo: #f0f4f8;
+      --blanco: #ffffff;
+      --texto: #1a2a3a;
+      --muted: #6b7f8f;
+      --borde: #d0dde8;
+      --verde: #1a7a4a;
+      --verde-bg: #eafaf1;
+      --naranja: #d35400;
+      --naranja-bg: #fef5ec;
+      --rojo: #c0392b;
+    }
+
+    body {
+      background: var(--fondo);
+      font-family: Georgia, 'Times New Roman', serif;
+      color: var(--texto);
+      min-height: 100vh;
+      padding-bottom: 3rem;
+    }
+
+    /* HEADER */
+    .header {
+      background: var(--azul);
+      color: white;
+      padding: 1.5rem 1.5rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left h1 {
+      font-size: 1.5rem;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
+
+    .header-left p {
+      font-size: 1rem;
+      opacity: 0.75;
+      margin-top: 0.2rem;
+    }
+
+    .salir-btn {
+      background: rgba(255,255,255,0.15);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: Georgia, serif;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    /* CONTENIDO */
+    .content {
+      padding: 1.5rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* SECCIÓN MEDICAMENTOS */
+    .section-title {
+      font-size: 1.3rem;
+      color: var(--azul);
+      margin-bottom: 1rem;
+      font-weight: 400;
+      border-bottom: 2px solid var(--borde);
+      padding-bottom: 0.5rem;
+    }
+
+    .toma-card {
+      background: var(--blanco);
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+      border: 2px solid var(--borde);
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      transition: border-color 0.2s;
+    }
+
+    .toma-card.tomado {
+      border-color: #a9dfbf;
+      background: var(--verde-bg);
+    }
+
+    .toma-card.retrasado {
+      border-color: #f5cba7;
+      background: var(--naranja-bg);
+    }
+
+    .toma-hora {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--azul);
+      min-width: 60px;
+      text-align: center;
+      line-height: 1;
+    }
+
+    .toma-hora small {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+
+    .toma-info {
+      flex: 1;
+    }
+
+    .toma-nombre {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--texto);
+    }
+
+    .toma-dosis {
+      font-size: 1rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+
+    .toma-estado {
+      font-size: 1.5rem;
+    }
+
+    .empty-med {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 1.1rem;
+      background: var(--blanco);
+      border-radius: 14px;
+      border: 2px dashed var(--borde);
+    }
+
+    /* BOTÓN EMERGENCIA */
+    .emergencia-section {
+      margin-top: 2.5rem;
+    }
+
+    .emergencia-titulo {
+      font-size: 1.1rem;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .btn-emergencia {
+      width: 100%;
+      padding: 2rem 1rem;
+      background: var(--rojo);
+      color: white;
+      border: none;
+      border-radius: 18px;
+      font-size: 1.75rem;
+      font-family: Georgia, serif;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.2s;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .btn-emergencia:hover { background: #a93226; }
+
+    /* Progreso del hold */
+    .btn-emergencia .progress {
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 6px;
+      background: rgba(255,255,255,0.6);
+      width: 0%;
+      transition: none;
+      border-radius: 0 0 18px 18px;
+    }
+
+    .btn-emergencia.holding .progress {
+      width: 100%;
+      transition: width 3s linear;
+    }
+
+    .btn-emergencia .texto-normal { display: block; }
+    .btn-emergencia .texto-holding { display: none; }
+    .btn-emergencia.holding .texto-normal { display: none; }
+    .btn-emergencia.holding .texto-holding { display: block; }
+
+    .emergencia-hint {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 0.75rem;
+    }
+
+    /* MODAL CONFIRMACIÓN */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .modal-overlay.visible {
+      display: flex;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 20px;
+      padding: 2.5rem 2rem;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .modal-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .modal h2 { font-size: 1.5rem; color: var(--texto); margin-bottom: 0.75rem; }
+    .modal p { color: var(--muted); font-size: 1rem; margin-bottom: 2rem; line-height: 1.5; }
+
+    .modal-btns { display: flex; gap: 1rem; }
+
+    .btn-cancelar {
+      flex: 1;
+      padding: 1rem;
+      background: var(--fondo);
+      border: 2px solid var(--borde);
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: Georgia, serif;
+      cursor: pointer;
+      color: var(--texto);
+    }
+
+    .btn-confirmar {
+      flex: 1;
+      padding: 1rem;
+      background: var(--rojo);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: Georgia, serif;
+      cursor: pointer;
+    }
+
+    /* ÉXITO */
+    .exito-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #1a7a4a;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .exito-overlay.visible { display: flex; }
+    .exito-overlay .icon { font-size: 5rem; margin-bottom: 1.5rem; }
+    .exito-overlay h2 { color: white; font-size: 2rem; font-weight: 400; margin-bottom: 1rem; }
+    .exito-overlay p { color: rgba(255,255,255,0.85); font-size: 1.2rem; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <h1>💊 Don Vital</h1>
+      <p>Hola, {{ paciente.nombre|truncatechars:20 }}</p>
+    </div>
+    <a href="/paciente/salir/" class="salir-btn">Salir</a>
+  </div>
+
+  <div class="content">
+
+    <!-- MEDICAMENTOS DEL DÍA -->
+    <h2 class="section-title">💊 Mis medicamentos de hoy</h2>
+
+    {% if tomas %}
+      {% for toma in tomas %}
+      <div class="toma-card {{ toma.estado }}">
+        <div class="toma-hora">
+          {{ toma.hora_programada|time:"H:i" }}
+          <small>hoy</small>
+        </div>
+        <div class="toma-info">
+          <div class="toma-nombre">{{ toma.medicamento.nombre }}</div>
+          <div class="toma-dosis">{{ toma.medicamento.dosis }}</div>
+        </div>
+        <div class="toma-estado">
+          {% if toma.estado == 'tomado' %}✅
+          {% elif toma.estado == 'omitido' %}❌
+          {% elif toma.estado == 'retrasado' %}⚠️
+          {% else %}⏳{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-med">
+        🎉 No tienes medicamentos programados para hoy
+      </div>
+    {% endif %}
+
+    <!-- BOTÓN EMERGENCIA -->
+    <div class="emergencia-section">
+      <p class="emergencia-titulo">¿Necesitas ayuda urgente?</p>
+      <button class="btn-emergencia" id="btnEmergencia">
+        <span class="texto-normal">🆘 EMERGENCIA</span>
+        <span class="texto-holding">Aguanta... enviando alerta...</span>
+        <div class="progress" id="progressBar"></div>
+      </button>
+      <p class="emergencia-hint">Mantén presionado 3 segundos para enviar alerta</p>
+    </div>
+
+  </div>
+
+  <!-- MODAL CONFIRMACIÓN -->
+  <div class="modal-overlay" id="modalConfirm">
+    <div class="modal">
+      <div class="modal-icon">🚨</div>
+      <h2>¿Confirmar emergencia?</h2>
+      <p>Se enviará una alerta inmediata a todos tus cuidadores con tu ubicación.</p>
+      <div class="modal-btns">
+        <button class="btn-cancelar" onclick="cancelarEmergencia()">Cancelar</button>
+        <form method="post" action="/paciente/emergencia/" style="flex:1;">
+          {% csrf_token %}
+          <input type="hidden" name="paciente_id" value="{{ paciente.id }}">
+          <input type="hidden" name="latitud" id="inputLatitud" value="">
+          <input type="hidden" name="longitud" id="inputLongitud" value="">
+          <button type="submit" class="btn-confirmar" style="width:100%;">🆘 Enviar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- OVERLAY ÉXITO -->
+  <div class="exito-overlay" id="exitoOverlay">
+    <div class="icon">✅</div>
+    <h2>¡Alerta enviada!</h2>
+    <p>Tus cuidadores ya fueron notificados.<br>Alguien llegará pronto.</p>
+  </div>
+
+  <script>
+    const btn = document.getElementById('btnEmergencia');
+    const modal = document.getElementById('modalConfirm');
+    let holdTimer = null;
+    let holding = false;
+
+    function iniciarHold() {
+      holding = true;
+      btn.classList.add('holding');
+      holdTimer = setTimeout(() => {
+        if (holding) mostrarModal();
+      }, 3000);
+    }
+
+    function terminarHold() {
+      holding = false;
+      btn.classList.remove('holding');
+      if (holdTimer) clearTimeout(holdTimer);
+    }
+
+    function mostrarModal() {
+      terminarHold();
+      // Intentar obtener ubicación
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          document.getElementById('inputLatitud').value = pos.coords.latitude;
+          document.getElementById('inputLongitud').value = pos.coords.longitude;
+        }, () => {});
+      }
+      modal.classList.add('visible');
+    }
+
+    function cancelarEmergencia() {
+      modal.classList.remove('visible');
+    }
+
+    btn.addEventListener('mousedown', iniciarHold);
+    btn.addEventListener('touchstart', e => { e.preventDefault(); iniciarHold(); });
+    btn.addEventListener('mouseup', terminarHold);
+    btn.addEventListener('mouseleave', terminarHold);
+    btn.addEventListener('touchend', terminarHold);
+    btn.addEventListener('touchcancel', terminarHold);
+  </script>
+
+</body>
+</html>
