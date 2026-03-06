@@ -117,12 +117,12 @@ def crear_cita(request):
         cita.creado_por = usuario
         cita.save()
         
-        # Programar recordatorios asíncronamente
+        # Programar recordatorios
         try:
             from apps.notificaciones.tasks import programar_recordatorios_cita
-            programar_recordatorios_cita.delay(cita.id)
+            programar_recordatorios_cita(cita.id)
         except Exception:
-            pass  # Celery puede no estar corriendo en desarrollo
+            pass
         
         messages.success(request, f'Cita registrada para {cita.paciente.nombre} el {cita.fecha}.')
         return redirect('detalle_cita', pk=cita.pk)
