@@ -50,6 +50,6 @@ class Suscripcion(models.Model):
     def esta_activa(self):
         if self.estado in [self.ESTADO_TRIAL, self.ESTADO_ACTIVA]:
             if self.fecha_fin:
-                return self.fecha_fin >= timezone.now().date()
+                return self.fecha_fin >= timezone.localdate()
             return True
         return False

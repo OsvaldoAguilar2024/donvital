@@ -64,7 +64,7 @@
       text-align: left;
     }
 
-    input[type="text"] {
+    input[type="text"], input[type="password"] {
       width: 100%;
       padding: 1.25rem 1.5rem;
       font-size: 1.5rem;
@@ -79,11 +79,11 @@
       outline: none;
     }
 
-    input[type="text"]:focus {
+    input[type="text"]:focus, input[type="password"]:focus {
       border-color: #4a9fd4;
     }
 
-    input[type="text"]::placeholder {
+    input[type="text"]::placeholder, input[type="password"]::placeholder {
       color: #3a5a7a;
       letter-spacing: 0.05em;
     }
@@ -145,7 +145,7 @@
 
       <form method="post">
         {% csrf_token %}
-        <label for="telefono">Ingresa tu número de cédula</label>
+        <label for="cedula">Ingresa tu número de cédula</label>
         <input
           type="text"
           id="cedula"
@@ -154,6 +154,17 @@
           autocomplete="off"
           inputmode="numeric"
           autofocus
+          required
+        >
+        <label for="pin" style="margin-top:1.25rem">Tu PIN (te lo da tu cuidador)</label>
+        <input
+          type="password"
+          id="pin"
+          name="pin"
+          placeholder="••••"
+          autocomplete="current-password"
+          inputmode="numeric"
+          maxlength="6"
           required
         >
         <button type="submit" class="btn">Entrar →</button>

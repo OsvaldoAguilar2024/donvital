@@ -4,80 +4,100 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
-import random
 import logging
+import secrets
+
+from django.conf import settings
+from django.contrib.auth.hashers import make_password
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
+OTP_MINUTOS = 10
+OTP_MAX_ENVIOS = 3            # por número, cada 15 minutos
+PASSWORD_MAX_FALLOS = 5       # por número, cada 15 minutos
+VENTANA_SEG = 15 * 60
+ERROR_LOGIN = 'Número o contraseña incorrectos.'
 
-def generar_otp():
-    return str(random.randint(100000, 999999))
+
+def generar_otp() -> str:
+    return f'{secrets.randbelow(1_000_000):06d}'
+
+
+def _contador(clave: str) -> int:
+    return cache.get(clave, 0)
+
+
+def _sumar(clave: str):
+    cache.add(clave, 0, VENTANA_SEG)
+    try:
+        cache.incr(clave)
+    except ValueError:
+        cache.set(clave, 1, VENTANA_SEG)
 
 
 def login_view(request):
-    """Login con dos opciones: contraseña o OTP por SMS"""
+    """Login con dos opciones: contraseña o código por SMS."""
     if request.user.is_authenticated:
         return redirect('dashboard')
 
-    if request.method == 'POST':
-        telefono = request.POST.get('telefono', '').strip()
-        metodo = request.POST.get('metodo', 'password')  # 'password' o 'otp'
-        
-        if not telefono:
-            messages.error(request, 'Ingresa tu número de teléfono.')
-            return render(request, 'usuarios/login.html')
+    if request.method != 'POST':
+        return render(request, 'usuarios/login.html')
 
-        from .models import Usuario
-        try:
-            usuario = Usuario.objects.get(telefono=telefono)
-        except Usuario.DoesNotExist:
-            messages.error(request, 'Número no registrado. ¿Ya tienes una cuenta?')
-            return render(request, 'usuarios/login.html')
+    from apps.notificaciones.services import normalizar_telefono, enviar_sms_otp
+    from .models import Usuario, OTPVerificacion
 
-        if metodo == 'password':
-            # Login con contraseña
-            password = request.POST.get('password', '')
-            if usuario.check_password(password):
-                login(request, usuario)
-                messages.success(request, f'¡Bienvenido, {usuario.nombre}!')
-                return redirect('dashboard')
-            else:
-                messages.error(request, 'Contraseña incorrecta.')
-                return render(request, 'usuarios/login.html', {'telefono': telefono, 'mostrar_password': True})
+    telefono_raw = request.POST.get('telefono', '').strip()
+    metodo = request.POST.get('metodo', 'password')
+    if not telefono_raw:
+        messages.error(request, 'Ingresa tu número de teléfono.')
+        return render(request, 'usuarios/login.html')
+    telefono = normalizar_telefono(telefono_raw)
+    usuario = Usuario.objects.filter(telefono=telefono, is_active=True).first()
 
-        else:
-            # Login con OTP
-            from .models import OTPVerificacion
-            import importlib
-            
-            otp_codigo = generar_otp()
-            expira_at = timezone.now() + timedelta(minutes=10)
-            
-            OTPVerificacion.objects.create(
-                usuario=usuario,
-                codigo=otp_codigo,
-                expira_at=expira_at
-            )
+    if metodo == 'password':
+        clave = f'login:fallos:{telefono}'
+        if _contador(clave) >= PASSWORD_MAX_FALLOS:
+            messages.error(request, 'Demasiados intentos. Espera 15 minutos o entra con código por SMS.')
+            return render(request, 'usuarios/login.html', {'telefono': telefono_raw}, status=429)
+        password = request.POST.get('password', '')
+        if usuario and usuario.check_password(password):
+            cache.delete(clave)
+            login(request, usuario)
+            messages.success(request, f'¡Bienvenido, {usuario.nombre}!')
+            return redirect('dashboard')
+        if not usuario:
+            make_password(password)  # mismo tiempo de respuesta exista o no el número
+        _sumar(clave)
+        messages.error(request, ERROR_LOGIN)
+        return render(request, 'usuarios/login.html', {'telefono': telefono_raw, 'mostrar_password': True})
 
-            # Enviar SMS
-            try:
-                from django.conf import settings
-                from twilio.rest import Client
-                client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-                client.messages.create(
-                    body=f'Don Vital: Tu código de acceso es {otp_codigo}. Válido por 10 minutos.',
-                    from_=settings.TWILIO_PHONE_NUMBER,
-                    to=telefono
-                )
-                messages.success(request, f'Código enviado a {telefono}')
-            except Exception as e:
-                logger.error(f"Error enviando SMS: {e}")
-                messages.warning(request, f'[DEV] Código OTP: {otp_codigo}')
+    # --- Código por SMS ---
+    clave_envios = f'otp:envios:{telefono}'
+    if _contador(clave_envios) >= OTP_MAX_ENVIOS:
+        messages.error(request, 'Ya pediste varios códigos. Espera 15 minutos e inténtalo de nuevo.')
+        return render(request, 'usuarios/login.html', {'telefono': telefono_raw}, status=429)
+    _sumar(clave_envios)
 
-            request.session['otp_telefono'] = telefono
-            return redirect('verificar_otp')
+    if usuario:
+        codigo = generar_otp()
+        OTPVerificacion.objects.filter(telefono=telefono, usado=False).update(usado=True)
+        OTPVerificacion.objects.create(
+            telefono=telefono,
+            codigo=make_password(codigo),
+            expira_at=timezone.now() + timedelta(minutes=OTP_MINUTOS),
+        )
+        enviado = enviar_sms_otp(telefono, codigo)
+        if not enviado:
+            logger.error('No se pudo enviar el código por SMS a %s', telefono[-4:].rjust(len(telefono), '*'))
+        if settings.DEBUG and not settings.TWILIO_ACCOUNT_SID:
+            # Solo en desarrollo local, nunca en producción
+            messages.info(request, f'[Desarrollo] Código: {codigo}')
 
-    return render(request, 'usuarios/login.html')
+    # Mismo mensaje exista o no la cuenta, para no revelar qué números están registrados
+    messages.success(request, 'Si el número está registrado, te enviamos un código por SMS.')
+    request.session['otp_telefono'] = telefono
+    return redirect('verificar_otp')
 
 
 def verificar_otp(request):
@@ -86,28 +106,29 @@ def verificar_otp(request):
         return redirect('login')
 
     if request.method == 'POST':
-        codigo = request.POST.get('codigo', '').strip()
         from .models import Usuario, OTPVerificacion
+        codigo = request.POST.get('codigo', '').strip()
+        otp = OTPVerificacion.objects.filter(telefono=telefono, usado=False).order_by('-creado_at').first()
+        usuario = Usuario.objects.filter(telefono=telefono, is_active=True).first()
 
-        try:
-            usuario = Usuario.objects.get(telefono=telefono)
-            otp = OTPVerificacion.objects.filter(
-                usuario=usuario,
-                codigo=codigo,
-                usado=False
-            ).order_by('-creado_at').first()
+        if otp and usuario and otp.es_valido() and codigo.isdigit() and otp.verificar(codigo):
+            otp.usado = True
+            otp.save(update_fields=['usado'])
+            del request.session['otp_telefono']
+            login(request, usuario)
+            messages.success(request, f'¡Bienvenido, {usuario.nombre}!')
+            return redirect('dashboard')
 
-            if otp and otp.es_valido():
+        if otp:
+            otp.intentos += 1
+            otp.save(update_fields=['intentos'])
+            if otp.intentos >= otp.MAX_INTENTOS:
                 otp.usado = True
-                otp.save()
+                otp.save(update_fields=['usado'])
                 del request.session['otp_telefono']
-                login(request, usuario)
-                messages.success(request, f'¡Bienvenido, {usuario.nombre}!')
-                return redirect('dashboard')
-            else:
-                messages.error(request, 'Código incorrecto o expirado.')
-        except Usuario.DoesNotExist:
-            messages.error(request, 'Usuario no encontrado.')
+                messages.error(request, 'Demasiados intentos. Pide un código nuevo.')
+                return redirect('login')
+        messages.error(request, 'Código incorrecto o expirado.')
 
     return render(request, 'usuarios/verificar_otp.html', {'telefono': telefono})
 

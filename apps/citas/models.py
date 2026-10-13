@@ -64,7 +64,7 @@ class Cita(models.Model):
 
     @property
     def es_hoy(self):
-        return self.fecha == timezone.now().date()
+        return self.fecha == timezone.localdate()
 
     def confirmar(self, usuario=None):
         """Confirma la cita si está en estado programada o confirmada."""

@@ -6,28 +6,23 @@ from django.utils import timezone
 from django.http import JsonResponse
 from .models import Medicamento, RegistroToma, HistorialMedicamento
 from .forms import MedicamentoForm, ConfirmarTomaForm
-from apps.pacientes.models import Paciente, CuidadorPaciente
+from django.views.decorators.http import require_POST
+from apps.pacientes.models import Paciente
+from apps.pacientes.permisos import pacientes_de, puede_ver_paciente
 
 
 def _verificar_acceso_paciente(request, paciente):
     """Verifica que el usuario tenga acceso al paciente."""
-    if request.user.rol == 'admin':
-        return True
-    return CuidadorPaciente.objects.filter(
-        usuario=request.user, paciente=paciente, activo=True
-    ).exists()
+    return puede_ver_paciente(request.user, paciente)
 
 
 @login_required
 def lista_medicamentos(request):
     """Lista todos los medicamentos de los pacientes del cuidador."""
-    if request.user.rol == 'admin':
-        medicamentos = Medicamento.objects.select_related('paciente').order_by('paciente__nombre', 'nombre')
-    else:
-        ids_pacientes = list(request.user.get_pacientes().values_list('id', flat=True))
-        medicamentos = Medicamento.objects.filter(
-            paciente_id__in=ids_pacientes
-        ).select_related('paciente').order_by('paciente__nombre', 'nombre')
+    ids_pacientes = list(pacientes_de(request.user).values_list('id', flat=True))
+    medicamentos = Medicamento.objects.filter(
+        paciente_id__in=ids_pacientes
+    ).select_related('paciente').order_by('paciente__nombre', 'nombre')
 
     # Agrupar por paciente
     por_paciente = {}
@@ -38,7 +33,7 @@ def lista_medicamentos(request):
         por_paciente[key].append(med)
 
     # Alertas del día
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     alertas = {
         'stock_bajo': [m for m in medicamentos if m.stock_bajo],
         'receta_vencida': [m for m in medicamentos if m.receta_vencida],
@@ -60,7 +55,7 @@ def detalle_medicamento(request, pk):
         messages.error(request, 'No tienes acceso a este medicamento.')
         return redirect('lista_medicamentos')
 
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     tomas_hoy = RegistroToma.objects.filter(
         medicamento=med, fecha_programada=hoy
     ).order_by('hora_programada')
@@ -87,10 +82,7 @@ def detalle_medicamento(request, pk):
 
 @login_required
 def crear_medicamento(request, paciente_id=None):
-    if request.user.rol == 'admin':
-        pacientes_disponibles = Paciente.objects.filter(activo=True)
-    else:
-        pacientes_disponibles = request.user.get_pacientes()
+    pacientes_disponibles = pacientes_de(request.user)
 
     paciente_inicial = None
     if paciente_id:
@@ -102,7 +94,8 @@ def crear_medicamento(request, paciente_id=None):
     form = MedicamentoForm(request.POST or None, request.FILES or None)
     if form.is_valid():
         med = form.save(commit=False)
-        med.paciente = paciente_inicial or get_object_or_404(Paciente, pk=request.POST.get('paciente'))
+        # El paciente debe ser uno de los que el usuario cuida (antes aceptaba cualquier id)
+        med.paciente = paciente_inicial or get_object_or_404(pacientes_disponibles, pk=request.POST.get('paciente'))
         med.registrado_por = request.user
         med.save()
 
@@ -115,7 +108,7 @@ def crear_medicamento(request, paciente_id=None):
         )
 
         # Generar tomas del día si el medicamento ya inició
-        if med.fecha_inicio <= timezone.now().date():
+        if med.fecha_inicio <= timezone.localdate():
             try:
                 from .tasks import generar_registros_toma_diarios
                 generar_registros_toma_diarios.delay()
@@ -214,16 +207,13 @@ def omitir_toma(request, toma_id):
 @login_required
 def tomas_del_dia(request):
     """Vista del día: todas las tomas programadas para hoy de todos los pacientes."""
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
 
-    if request.user.rol == 'admin':
-        tomas = RegistroToma.objects.filter(fecha_programada=hoy)
-    else:
-        ids_pacientes = list(request.user.get_pacientes().values_list('id', flat=True))
-        tomas = RegistroToma.objects.filter(
-            fecha_programada=hoy,
-            medicamento__paciente_id__in=ids_pacientes
-        )
+    ids_pacientes = list(pacientes_de(request.user).values_list('id', flat=True))
+    tomas = RegistroToma.objects.filter(
+        fecha_programada=hoy,
+        medicamento__paciente_id__in=ids_pacientes
+    )
 
     tomas = tomas.select_related(
         'medicamento__paciente', 'confirmado_por'
