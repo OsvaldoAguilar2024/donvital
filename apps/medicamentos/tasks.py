@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task
-def generar_registros_toma_diarios():
+def generar_registros_toma_diarios(hoy=None):
     """
     Tarea diaria (00:05 AM) que genera los RegistroToma del día
     para todos los medicamentos activos.
@@ -17,7 +17,7 @@ def generar_registros_toma_diarios():
     from .models import Medicamento, RegistroToma
     from datetime import time
 
-    hoy = timezone.now().date()
+    hoy = hoy or timezone.localdate()
     dia_semana = hoy.weekday()  # 0=Lunes, 6=Domingo
     creados = 0
 
@@ -42,7 +42,7 @@ def generar_registros_toma_diarios():
             inicio_dt = timezone.make_aware(
                 timezone.datetime.combine(med.fecha_inicio, time(8, 0))
             )
-            ahora = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            ahora = timezone.localtime().replace(hour=0, minute=0, second=0, microsecond=0)
             horas_desde_inicio = int((ahora - inicio_dt).total_seconds() // 3600)
             offset = horas_desde_inicio % med.intervalo_horas
             h = (8 + (med.intervalo_horas - offset) % med.intervalo_horas) % 24
@@ -158,7 +158,7 @@ def verificar_stock_y_recetas():
     from apps.pacientes.models import CuidadorPaciente
     from apps.notificaciones.services import crear_notificacion_interna, enviar_sms
 
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     medicamentos = Medicamento.objects.filter(
         estado=Medicamento.ESTADO_ACTIVO
     ).select_related('paciente')
@@ -237,31 +237,32 @@ def verificar_stock_y_recetas():
 
 
 @shared_task
-def verificar_y_enviar_tomas():
+def verificar_y_enviar_tomas(ahora=None):
     """
-    Corre cada hora. Busca tomas pendientes en ventana de ±35 minutos
-    y dispara el recordatorio. Mismo patrón que citas.
+    Busca tomas pendientes cuya hora (en hora de Colombia) cae en una ventana
+    de ±35 minutos alrededor de ahora y dispara el recordatorio.
+    La ventana puede cruzar la medianoche, por eso se revisan dos fechas.
     """
     from .models import Medicamento, RegistroToma
     from datetime import datetime, timedelta
 
-    ahora = timezone.now()
-    hoy = ahora.date()
-    ventana_inicio = (ahora - timedelta(minutes=35)).time()
-    ventana_fin = (ahora + timedelta(minutes=35)).time()
+    ahora = timezone.localtime(ahora or timezone.now())
+    inicio = ahora - timedelta(minutes=35)
+    fin = ahora + timedelta(minutes=35)
+    tz = timezone.get_current_timezone()
 
-    tomas = RegistroToma.objects.filter(
-        fecha_programada=hoy,
+    candidatas = RegistroToma.objects.filter(
+        fecha_programada__in={inicio.date(), fin.date()},
         estado=RegistroToma.ESTADO_PENDIENTE,
         medicamento__estado=Medicamento.ESTADO_ACTIVO,
-        hora_programada__gte=ventana_inicio,
-        hora_programada__lte=ventana_fin,
     )
 
     enviados = 0
-    for toma in tomas:
-        enviar_recordatorio_medicamento(toma.id)
-        enviados += 1
+    for toma in candidatas:
+        momento = timezone.make_aware(datetime.combine(toma.fecha_programada, toma.hora_programada), tz)
+        if inicio <= momento <= fin:
+            enviar_recordatorio_medicamento(toma.id)
+            enviados += 1
 
     logger.info(f'Tomas enviadas: {enviados}')
     return {'enviados': enviados}
@@ -276,7 +277,7 @@ def programar_recordatorios_medicamentos_hoy():
     from .models import Medicamento, RegistroToma
     from datetime import datetime
 
-    hoy = timezone.now().date()
+    hoy = timezone.localdate()
     registros = RegistroToma.objects.filter(
         fecha_programada=hoy,
         estado=RegistroToma.ESTADO_PENDIENTE,

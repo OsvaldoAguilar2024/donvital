@@ -4,11 +4,32 @@ DON VITAL - Settings
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-cambiar-en-produccion-abc123xyz')
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# Producción por defecto. Para desarrollo local: DEBUG=True en el entorno.
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+
+SECRET_KEY = os.environ.get('SECRET_KEY', '')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'solo-desarrollo-local-no-usar-en-produccion'
+    else:
+        raise ImproperlyConfigured('Falta la variable SECRET_KEY.')
+
+
+def _lista(nombre, defecto=''):
+    return [x.strip() for x in os.environ.get(nombre, defecto).split(',') if x.strip()]
+
+
+ALLOWED_HOSTS = _lista('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+CSRF_TRUSTED_ORIGINS = _lista('CSRF_TRUSTED_ORIGINS')
+# Railway expone el dominio público en esta variable; se agrega solo
+_railway = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
+if _railway:
+    ALLOWED_HOSTS.append(_railway)
+    CSRF_TRUSTED_ORIGINS.append(f'https://{_railway}')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -17,11 +38,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Terceros
-    'rest_framework',
-    'rest_framework.authtoken',
-    'django_celery_beat',
-    'django_celery_results',
     # Don Vital
     'apps.usuarios',
     'apps.pacientes',
@@ -67,7 +83,7 @@ WSGI_APPLICATION = 'donvital.wsgi.application'
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
 if DATABASE_URL:
     import dj_database_url
-    DATABASES = {'default': dj_database_url.parse(DATABASE_URL)}
+    DATABASES = {'default': dj_database_url.parse(DATABASE_URL, conn_max_age=60, conn_health_checks=True)}
 else:
     DATABASES = {
         'default': {
@@ -82,7 +98,9 @@ LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/usuarios/login/'
 
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 6}},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 LANGUAGE_CODE = 'es-co'
@@ -93,8 +111,22 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
-CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://donvital.up.railway.app').split(',')
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage'},
+}
+
+# Seguridad en producción (Railway termina HTTPS en su proxy)
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = 'same-origin'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 días
+X_FRAME_OPTIONS = 'DENY'
 
 
 MEDIA_URL = '/media/'
@@ -111,15 +143,13 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_ACCEPT_CONTENT = ['json']
 
-# REST Framework
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
+# Registro de errores visible en los logs de Railway
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {'console': {'class': 'logging.StreamHandler'}},
+    'root': {'handlers': ['console'], 'level': 'INFO'},
+    'loggers': {'django': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False}},
 }
 
 # Twilio SMS

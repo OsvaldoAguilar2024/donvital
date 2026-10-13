@@ -360,10 +360,14 @@
   </div>
 
   <!-- OVERLAY ÉXITO -->
-  <div class="exito-overlay" id="exitoOverlay">
+  <div class="exito-overlay{% if emergencia_enviada %} visible{% endif %}" id="exitoOverlay" onclick="window.location='/paciente/inicio/'">
     <div class="icon">✅</div>
     <h2>¡Alerta enviada!</h2>
+    {% if emergencia_repetida %}
+    <p>Tus cuidadores ya recibieron tu alerta hace unos minutos.<br>Si no te contestan, llama al 123.</p>
+    {% else %}
     <p>Tus cuidadores ya fueron notificados.<br>Alguien llegará pronto.</p>
+    {% endif %}
   </div>
 
   <script>

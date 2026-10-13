@@ -70,7 +70,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 
 class OTPVerificacion(models.Model):
     telefono = models.CharField(max_length=20)
-    codigo = models.CharField(max_length=6)
+    codigo = models.CharField(max_length=128)  # cifrado con make_password, nunca en claro
     intentos = models.PositiveIntegerField(default=0)
     usado = models.BooleanField(default=False)
     creado_at = models.DateTimeField(auto_now_add=True)
@@ -82,10 +82,16 @@ class OTPVerificacion(models.Model):
     def __str__(self):
         return f'OTP {self.telefono}'
     
+    MAX_INTENTOS = 3
+
     def es_valido(self):
         from django.utils import timezone
         return (
             not self.usado and
-            self.intentos < 3 and
+            self.intentos < self.MAX_INTENTOS and
             self.expira_at > timezone.now()
         )
+
+    def verificar(self, codigo: str) -> bool:
+        from django.contrib.auth.hashers import check_password
+        return check_password(codigo, self.codigo)

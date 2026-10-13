@@ -82,19 +82,19 @@ class Medicamento(models.Model):
     def medicamento_vencido(self):
         if not self.fecha_vencimiento_medicamento:
             return False
-        return self.fecha_vencimiento_medicamento < timezone.now().date()
+        return self.fecha_vencimiento_medicamento < timezone.localdate()
 
     @property
     def receta_vencida(self):
         if not self.fecha_vencimiento_receta:
             return False
-        return self.fecha_vencimiento_receta < timezone.now().date()
+        return self.fecha_vencimiento_receta < timezone.localdate()
 
     @property
     def receta_vence_pronto(self):
         if not self.fecha_vencimiento_receta:
             return False
-        dias = (self.fecha_vencimiento_receta - timezone.now().date()).days
+        dias = (self.fecha_vencimiento_receta - timezone.localdate()).days
         return 0 <= dias <= self.dias_alerta_vencimiento_receta
 
     def get_horarios_display(self):

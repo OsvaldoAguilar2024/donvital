@@ -31,12 +31,12 @@ class Command(BaseCommand):
         solo_programar = options['solo_programar']
         solo_enviar = options['solo_enviar']
 
-        self.stdout.write(f'\n🗓️  Don Vital — {timezone.now().date()}\n')
+        self.stdout.write(f'\n🗓️  Don Vital — {timezone.localdate()}\n')
 
         if not solo_enviar:
             # Buscar citas futuras sin recordatorios
             citas_sin_recordatorios = Cita.objects.filter(
-                fecha__gte=timezone.now().date(),
+                fecha__gte=timezone.localdate(),
                 estado__in=['programada', 'confirmada'],
             ).exclude(
                 id__in=Recordatorio.objects.values_list('cita_id', flat=True)

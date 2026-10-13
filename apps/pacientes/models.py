@@ -19,6 +19,10 @@ class Paciente(models.Model):
     foto_carnet_eps = models.ImageField(upload_to='pacientes/carnets/', blank=True, null=True)
     activo = models.BooleanField(default=True)
     notas = models.TextField(blank=True)
+    # Acceso al portal del paciente: cédula + PIN (se guarda cifrado, nunca en claro)
+    pin_portal = models.CharField(max_length=128, blank=True, verbose_name='PIN del portal (cifrado)')
+    portal_intentos_fallidos = models.PositiveIntegerField(default=0)
+    portal_bloqueado_hasta = models.DateTimeField(null=True, blank=True)
     creado_at = models.DateTimeField(auto_now_add=True)
     actualizado_at = models.DateTimeField(auto_now=True)
 
@@ -30,12 +34,24 @@ class Paciente(models.Model):
     def __str__(self):
         return self.nombre
 
+    def set_pin(self, pin: str):
+        from django.contrib.auth.hashers import make_password
+        self.pin_portal = make_password(pin)
+
+    def check_pin(self, pin: str) -> bool:
+        from django.contrib.auth.hashers import check_password
+        return bool(self.pin_portal) and check_password(pin, self.pin_portal)
+
+    @property
+    def tiene_pin(self) -> bool:
+        return bool(self.pin_portal)
+
     @property
     def edad(self):
         if not self.fecha_nacimiento:
             return None
         from django.utils import timezone
-        hoy = timezone.now().date()
+        hoy = timezone.localdate()
         return hoy.year - self.fecha_nacimiento.year - (
             (hoy.month, hoy.day) < (self.fecha_nacimiento.month, self.fecha_nacimiento.day)
         )

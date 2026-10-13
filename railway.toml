@@ -1,6 +1,3 @@
-[build]
-builder = "nixpacks"
-
 [deploy]
+preDeployCommand = ["python manage.py migrate --noinput"]
 restartPolicyType = "on_failure"
-

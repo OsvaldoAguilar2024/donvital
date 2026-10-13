@@ -1,13 +1,10 @@
-Django==5.0.3
-djangorestframework==3.15.1
-django-celery-beat==2.6.0
-django-celery-results==2.5.1
-celery==5.3.6
-redis==5.0.1
-whitenoise==6.6.0
-dj-database-url==2.1.0
-Pillow==10.2.0
-gunicorn==21.2.0
-psycopg2-binary==2.9.9
+Django==5.2.7
+whitenoise==6.9.0
+dj-database-url==2.3.0
+Pillow==11.3.0
+gunicorn==23.0.0
+psycopg2-binary==2.9.10
 twilio==8.10.0
-stripe==8.5.0
+# Celery se mantiene solo porque las tareas usan @shared_task; en la Fase 1
+# se reemplaza por un cron de Railway. No hace falta Redis para correrlas.
+celery==5.4.0

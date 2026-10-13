@@ -29,7 +29,7 @@ class Command(BaseCommand):
 
         solo_generar = options['solo_generar']
         solo_enviar = options['solo_enviar']
-        hoy = timezone.now().date()
+        hoy = timezone.localdate()
 
         self.stdout.write(f'\n🗓️  Don Vital — {hoy}\n')
 

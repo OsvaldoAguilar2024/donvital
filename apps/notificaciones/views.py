@@ -1,6 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+from django.utils import timezone
+from django.views.decorators.http import require_POST
 from .models import Notificacion
 
 
@@ -16,10 +18,10 @@ def marcar_leida(request, pk):
     notif.marcar_leida()
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({'ok': True})
-    return redirect('notificaciones')
+    return redirect('lista_notificaciones')
 
 
 @login_required
 def marcar_todas_leidas(request):
-    Notificacion.objects.filter(usuario=request.user, leida=False).update(leida=True)
-    return redirect('notificaciones')
+    Notificacion.objects.filter(usuario=request.user, leida=False).update(leida=True, leida_at=timezone.now())
+    return redirect('lista_notificaciones')

@@ -65,8 +65,12 @@ def verificar_y_enviar_recordatorios():
     ventana_fin = ahora + timedelta(minutes=30)
 
     # Buscar citas con recordatorios pendientes en la ventana de ±30 min
+    # Solo citas que pueden tener un recordatorio en la ventana (hasta 3 días adelante, 1 atrás)
+    hoy = timezone.localdate()
     citas = Cita.objects.filter(
         estado__in=['programada', 'confirmada'],
+        fecha__gte=hoy - timedelta(days=1),
+        fecha__lte=hoy + timedelta(days=4),
     ).select_related('paciente', 'especialidad')
 
     enviados = 0
@@ -142,7 +146,6 @@ def verificar_y_enviar_recordatorios():
                         usuario=usuario,
                         titulo=msg['titulo'],
                         mensaje=msg['cuerpo'],
-                        cita=cita,
                         tipo='recordatorio',
                         url=url_cita
                     )
@@ -195,7 +198,7 @@ def verificar_citas_sin_confirmar():
 
     citas = Cita.objects.filter(
         estado=Cita.ESTADO_PROGRAMADA,
-        fecha__gte=ahora.date(),
+        fecha__gte=timezone.localdate(),
     ).select_related('paciente', 'especialidad')
 
     for cita in citas:
@@ -215,7 +218,7 @@ def verificar_citas_sin_confirmar():
                 f'en menos de 4h. ¡Aún no está confirmada!'
             )
             try:
-                crear_notificacion_interna(usuario, titulo, mensaje, cita, 'alerta')
+                crear_notificacion_interna(usuario, titulo, mensaje, tipo='alerta', url=f'/citas/{cita.id}/')
                 if usuario.notif_push:
                     enviar_push(usuario, titulo, mensaje, f'/citas/{cita.id}/')
             except Exception as e:
